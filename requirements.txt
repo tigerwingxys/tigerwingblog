@@ -1,5 +1,7 @@
 aiopg
 bcrypt
 markdown
+DBUtils
+cachetools
 psycopg2
 tornado
