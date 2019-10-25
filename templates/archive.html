@@ -1,0 +1,47 @@
+{% extends "frame_base.html" %}
+
+{% block head %}
+  <style type="text/css">
+    ul.archive {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    ul.archive li {
+      margin-bottom: 1em;
+    }
+
+    ul.archive .title {
+      font-family: "Helvetica Nue", Helvetica, Arial, sans-serif;
+      font-size: 14pt;
+    }
+    ul.archive .sec_title {
+        font-family: "Bitstream Vera Sans Mono", Monaco, "Courier New", Courier, monospace;
+        font-size: 12pt;
+        color: #6C8CD5;
+    }
+      #entry_brief{
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+      }
+  </style>
+{% end %}
+
+{% block body %}
+  <ul class="archive">
+      <li>{{ '分页：' if len(pages)>0 else '' }}
+          {% for page in pages %}
+            <a href="{{ page["url"] }}" style="{{ 'font-weight: bold' if int(page["page_title"])==current_page else '' }};">{{ page["page_title"] }}</a>
+          {% end %}
+      </li>
+    {% for entry in entries %}
+      <li>
+          <div class="title"><a href="/blog/entry/{{ entry.slug }}">{{ entry.title }}</a><i class="sec_title">, {{ locale.format_date(entry.published, full_format=True) }}, [{{ get_authorname_by_id(entry.author_id) }}] {{ ""  if entry and entry.is_public else "仅自己可见"}}</i></div>
+          <div id="entry_brief">{{ entry.markdown }}</div>
+      </li>
+    {% end %}
+      <li>{{ "没有记录。" if len(entries)==0 else "" }}</li>
+  </ul>
+{% end %}

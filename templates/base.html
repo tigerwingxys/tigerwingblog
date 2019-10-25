@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ escape(handler.settings["blog_title"]) }}</title>
+    <link rel="stylesheet" href="{{ static_url("css/blog.css") }}" type="text/css">
+    <link rel="stylesheet" href="{{ static_url("css/blogPostStyle.css") }}" type="text/css">
+    <link rel="stylesheet" href="{{ static_url("css/zTreeStyle/zTreeStyle.css") }}" type="text/css">
+    <link rel="alternate" href="/feed" type="application/atom+xml" title="{{ escape(handler.settings["blog_title"]) }}">
+    {% block head %}{% end %}
+</head>
+<body>
+<div id="mainwrapper">
+    <header>
+
+        <div id="logo"><a href="#" onclick="showContent('/blog/archive0-10')">{{ escape(handler.settings["blog_title"]) }}
+            </a>  大山里(inmountains.xyz)俱乐部</div>
+        <nav>
+            {% if current_user %}
+            <a href="#" onclick="showContent('/blog/compose')">{{ "新文章" }}</a>
+            <a href="#" onclick="showContent('/blog/myblogs0-10');return false;" >我的日志</a>
+            <a href="/auth/logout?next={{ url_escape(request.uri) }}">-{{ "注销("+current_user.name+")" }}</a>
+            {% else %}
+            <a href="#" onclick="showContent('/auth/login?next={{ url_escape(request.uri) }}');return false;" >{{ "登录" }}</a> -
+            <a href="#" onclick="showContent('/auth/create');return false;">{{ "注册新用户" }}</a>
+            <!-- {% raw _('<a href="%(url)s">登录</a> - <a href="/auth/create">注册新用户</a>') % {"url": "/auth/login?next=" + url_escape(request.uri)} %} -->
+            {% end %}
+        </nav>
+    </header>
+
+
+    <div id="content">
+        <section id="mainContent"><iframe src="{{content_url}}" frameborder="0" id="contentFrame" ></iframe></section>
+        <section id="sidebar">
+            <input type="text" id="searchText" placeholder="Search" onkeydown="search_keydown(event);">
+            <div id="adimage"><img src="{{ static_url("images/sidebar.gif") }}" alt=""/></div>
+            <nav>
+                <ul id="myBlogTree" class="ztree"></ul>
+            </nav>
+        </section>
+        <footer>
+
+        </footer>
+    </div>
+
+    <div id="footerbar">Copyright 2019 Tigerwing(tigerwingxys@qq.com)</div>
+</div>
+    <script src="{{ static_url("js/jquery.min.js") }}"></script>
+    {% if current_user %}
+    <script src="{{ static_url("js/jquery.ztree.core.min.js") }}"></script>
+	<SCRIPT type="text/javascript">
+		<!--
+		var setting = {
+			data: {
+				simpleData: {
+					enable: true
+				}
+			},
+			callback: {
+			    onClick: onClick
+            }
+		};
+
+        function onClick(event, treeId, treeNode, clickFlag) {
+            /*
+            var xmlhttp;
+            if (window.XMLHttpRequest) {
+                //  IE7+, Firefox, Chrome, Opera, Safari 浏览器执行代码
+                xmlhttp = new XMLHttpRequest();
+            } else {
+                // IE6, IE5 浏览器执行代码
+                xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+            }
+            xmlhttp.onreadystatechange = function () {
+                if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
+                    document.getElementById("mainContent").innerHTML = xmlhttp.responseText;
+                }
+            }
+            xmlhttp.open("GET", treeNode.entry_url, true);
+            xmlhttp.send();*/
+            if ( "undefined" === typeof(treeNode.entry_url) ) {
+                return;
+            }
+            showContent(treeNode.entry_url);
+
+        }
+
+        function getMyBlogs() {
+            var tree = {};
+            $.ajax({
+                url: "/blog/myblogtree",
+                type: "post",
+                contentType: "application/json",
+                timeout: 30000, //超时时间：30秒
+                async: false,//false-同步（当这个ajax执行完后才会继续执行其他代码）；异步-与其他代码互不影响，一起运行。
+                dataType: "json",
+                success: function (data) {
+                    console.log(data);
+                    tree = data;
+                }, error: function (data) {
+                    console.log(data);
+                }
+            });
+            return tree;
+        }
+
+		$(document).ready(function(){
+			$.fn.zTree.init($("#myBlogTree"), setting, getMyBlogs());
+		});
+		//-->
+    </SCRIPT>
+    <script type="text/javascript">
+        function saveMyBlogs() {
+            alert("asd");
+            var fileName = fileInput.val();
+            alert(fileName);
+            $.post("/blog/saveMyBlogs",{},function (data) {
+
+            });
+        }
+    </script>
+    {% end %}
+    <SCRIPT type="text/javascript">
+		function showContent(gotoURL){
+		    iframeObj = document.getElementById("contentFrame");
+		    iframeObj.setAttribute("src",gotoURL);
+            iframeObj.height=(iframeObj.Document?iframeObj.Document.body.scrollHeight:iframeObj.contentDocument.body.offsetHeight);
+        };
+		
+		function search_keydown(e) {
+            var evt = window.event || e;
+            if( evt.keyCode !== 13 ){
+                return;
+            }
+            searchText = document.getElementById("searchText").value;
+            gotoURL = "/blog/search0-10/"+searchText;
+  		    iframeObj = document.getElementById("contentFrame");
+		    iframeObj.setAttribute("src",gotoURL);
+            /*iframeObj.height=(iframeObj.Document?iframeObj.Document.body.scrollHeight:iframeObj.contentDocument.body.offsetHeight)+200;*/
+
+        };
+
+        /*window.onload=function modify() {
+            iframeObj = document.getElementById("contentFrame");
+            iframeObj.height=window.innerHeight-80;
+        };*/
+
+	</SCRIPT>
+{% block bottom %}{% end %}
+</body>
+</html>

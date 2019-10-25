@@ -1,0 +1,33 @@
+{% extends "frame_base.html" %}
+
+{% block body %}
+  {% module Entry(entry) %}
+{% end %}
+
+{% block bottom %}
+<script src="{{ static_url("js/jquery.min.js") }}"></script>
+<script type="text/javascript">
+    /*window.onload = function () {
+        let imgList = document.getElementsByClassName("img");
+        for( let i = 0; i < imgList.length; i ++){
+            let aObj = imgList[i];
+            alert(i);
+            aObj.style.width = (aObj.Document?aObj.Document.body.scrollWidth:aObj.contentDocument.body.offsetWidth);
+        }
+    };*/
+    $(document).ready(function () {
+        var aLink = document.getElementById("aLinkSelf");
+        aLink.href = "#"
+        var imgList = document.getElementsByTagName("img");
+        for( var i = 0; i < imgList.length; i ++){
+            var aObj = imgList[i];
+            aObj.width = 1000;
+        }
+        /*alert(document.getElementById("refresh_entry").value);
+        if ("refresh" === document.getElementById("refresh_entry").value) {
+            alert("alksdj");
+            window.top.location.reload();
+        }*/
+    });
+</script>
+{% end %}
