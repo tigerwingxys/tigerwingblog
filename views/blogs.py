@@ -46,7 +46,7 @@ class BaseHandler(tornado.web.RequestHandler):
     async def prepare(self):
         # get_current_user cannot be a coroutine, so set
         # self.current_user in prepare instead.
-        user_id = self.get_secure_cookie("tigerblog")
+        user_id = self.get_secure_cookie("tigerwingblog")
         if user_id:
             self.current_user = await Author().get_author(int(user_id))
 
@@ -245,7 +245,7 @@ class AuthCreateHandler(BaseHandler):
         hashed_password = tornado.escape.to_unicode(hashed_password)
         author = await Author().add_author(self.get_argument("email"), self.get_argument("name"), hashed_password, )
         commit_transaction()
-        self.set_secure_cookie("tigerblog", str(author.id))
+        self.set_secure_cookie("tigerwingblog", str(author.id))
         self.redirect(self.get_argument("next", "/"))
 
 
@@ -264,7 +264,7 @@ class AuthLoginHandler(BaseHandler):
             self.render("login.html", error="email not found")
             return
         if await check_password(self.get_argument("password"), author.hashed_password):
-            self.set_secure_cookie("tigerblog", str(author.id))
+            self.set_secure_cookie("tigerwingblog", str(author.id))
             self.render("login_ok.html", goto_url="/")
         else:
             self.render("login.html", error="incorrect password")
@@ -272,7 +272,7 @@ class AuthLoginHandler(BaseHandler):
 
 class AuthLogoutHandler(BaseHandler):
     def get(self):
-        self.clear_cookie("tigerblog")
+        self.clear_cookie("tigerwingblog")
         self.redirect(self.get_argument("next", "/"))
 
 

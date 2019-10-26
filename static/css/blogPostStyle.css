@@ -148,6 +148,7 @@ nav ul li a {
 	clear: both;
 	background-color: rgba(225,224,224);
 	width: 100%;
+	position: fixed;
 	bottom: 0px;
 	left: 0px;
 	text-align: right;
