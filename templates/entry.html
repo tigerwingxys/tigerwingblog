@@ -21,7 +21,9 @@
         var imgList = document.getElementsByTagName("img");
         for( var i = 0; i < imgList.length; i ++){
             var aObj = imgList[i];
-            aObj.width = 1000;
+            if( aObj.width > 1000){
+                aObj.width = 1000;
+            }
         }
         /*alert(document.getElementById("refresh_entry").value);
         if ("refresh" === document.getElementById("refresh_entry").value) {

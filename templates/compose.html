@@ -8,7 +8,8 @@
 {% block body %}
   <form action="{{ request.path }}" method="post" class="compose">
       <div id="compose_title" style="padding-left: 2%;text-align: left;" ><h2>标题：<input name="title" style="width: 40%;" type="text" value="{{ entry.title if entry else "" }}"/></h2>
-          <input type="checkbox" name="ispublic" id="ispublic" {{ "checked"  if entry and entry.is_public else ""}}> <label for="ispublic" style="width: 40%;">打勾后允许所有人查看</label>
+          <input type="checkbox" name="ispublic" id="ispublic" {{ "checked"  if entry and entry.is_public else ""}}>
+          <label for="ispublic" title="打勾后允许所有人查看" style="width: 40%;">是否公开</label>
       </div>
     <div id="content-editormd" class="form-group">
         <textarea style="display:none;" class="form-control" id="content-editormd-markdown-doc" name="content-editormd-markdown-doc">{{ entry.markdown if entry else "" }}</textarea>
