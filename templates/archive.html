@@ -38,7 +38,8 @@
       </li>
     {% for entry in entries %}
       <li>
-          <div class="title"><a href="/blog/entry/{{ entry.slug }}">{{ entry.title }}</a><i class="sec_title">, {{ locale.format_date(entry.published, full_format=True) }}, [{{ get_authorname_by_id(entry.author_id) }}] {{ ""  if entry and entry.is_public else "仅自己可见"}}</i></div>
+          <div class="title"><a href="/blog/entry/{{ entry.slug }}">{{ entry.title }}</a>
+              <i class="sec_title">, {{ locale.format_date(entry.published, full_format=True) }}, [{{ get_authorname_by_id(entry.author_id) }}] {{ ", **加密**" if entry.is_encrypt else "" }} {{ ""  if entry.is_public else ", 仅自己可见"}}</i></div>
           <div id="entry_brief">{{ entry.markdown }}</div>
       </li>
     {% end %}

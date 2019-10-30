@@ -154,6 +154,12 @@ nav ul li a {
 	text-align: right;
     box-shadow: 0 -5px 10px rgb(127, 126, 126);
 }
+#git_src{
+	float: left;
+	width: 260px;
+	margin-left: 2px;
+	text-align: left;
+}
 footer {
 	/* Container for footer artices */
 	width: 99%;

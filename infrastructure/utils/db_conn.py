@@ -29,7 +29,7 @@ db = None
 
 
 class DbConnect:
-    # Create the global connection pool.
+    # Create the global permanent connection.
     @staticmethod
     def init_db(db_host, db_port, db_user, db_password, db_database):
         dsn = 'dbname=%s user=%s password=%s host=%s port=%s' % \
@@ -58,9 +58,9 @@ class DbConnect:
         Must be called with ``await self.execute(...)``
         """
         conn = DbConnect.get_db_conn()
-        cur = conn.cursor()
-        cur.execute(stmt, args)
-        cur.close()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(stmt, args)
 
     @staticmethod
     def query(stmt, position_offset=0, fetch_size=None, *args):
@@ -71,16 +71,16 @@ class DbConnect:
             for row in await self.query(...)
         """
         conn = DbConnect.get_db_conn()
-        cur = conn.cursor()
-        cur.execute(stmt, args)
-        if position_offset > 0:
-            cur.scroll(position_offset, mode="absolute")
-        if fetch_size is None:
-            cds = cur.fetchall()
-        else:
-            cds = cur.fetchmany(fetch_size)
-        results = [DbConnect.row_to_obj(row, cur) for row in cds]
-        cur.close()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(stmt, args)
+                if position_offset > 0:
+                    cur.scroll(position_offset, mode="absolute")
+                if fetch_size is None:
+                    cds = cur.fetchall()
+                else:
+                    cds = cur.fetchmany(fetch_size)
+                results = [DbConnect.row_to_obj(row, cur) for row in cds]
         return results
 
     @staticmethod
@@ -90,11 +90,11 @@ class DbConnect:
             some_row_exists = await self.query_check(...)
         """
         conn = DbConnect.get_db_conn()
-        cur = conn.cursor()
-        cur.execute(stmt, args)
-        cur.fetchone()
-        result = cur.rowcount
-        cur.close()
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(stmt, args)
+                cur.fetchone()
+                result = cur.rowcount
         return result > 0
 
     @staticmethod
@@ -104,19 +104,19 @@ class DbConnect:
         there are more than one.
         """
         conn = DbConnect.get_db_conn()
-        cur = conn.cursor()
-        cur.execute(stmt, args)
-        cds = cur.fetchone()
-        if cur.rowcount == 0:
-            cur.close()
-            raise NoResultError()
+        with conn:
+            with conn.cursor() as cur:
+                obj = tornado.util.ObjectDict()
+                cur.execute(stmt, args)
+                cds = cur.fetchone()
+                if cur.rowcount == 0:
+                    cur.close()
+                    raise NoResultError()
 
-        obj = tornado.util.ObjectDict()
-        i = 0
-        for desc in cur.description:
-            obj[desc.name] = cds[i]
-            i += 1
-        cur.close()
+                i = 0
+                for desc in cur.description:
+                    obj[desc.name] = cds[i]
+                    i += 1
         return obj
 
     @staticmethod
@@ -125,7 +125,21 @@ class DbConnect:
         Raises NoResultError if there are no results, or ValueError if
         there are more than one.
         """
-        return DbConnect.queryone(stmt, *args)
+        conn = DbConnect.get_db_conn()
+        with conn:
+            with conn.cursor() as cur:
+                obj = tornado.util.ObjectDict()
+                cur.execute(stmt, args)
+                cds = cur.fetchone()
+                if cur.rowcount == 0:
+                    cur.close()
+                    raise NoResultError()
+
+                i = 0
+                for desc in cur.description:
+                    obj[desc.name] = cds[i]
+                    i += 1
+        return obj
 
 
 def begin_transaction():

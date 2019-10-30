@@ -74,13 +74,13 @@ class Application(tornado.web.Application):
         )
         handlers = [
             (r"/", blogs.HomeHandler),
-            (r"/blog/myblogs(\d+)-(\d+)", blogs.MyBlogHandler),
+            (r"/blog/myblogs(\d+)-(\d+)/(\d*)", blogs.MyBlogHandler),
             (r"/blog/myblogtree", blogs.MyBlogTreeHandler),
             (r"/blog/entry/([^/]+)", blogs.blogEntryHandler),
             (r"/blog/refresh/([^/]+)", blogs.blogRefreshEntryHandler),
             (r"/blog/archive(\d+)-(\d+)", blogs.ArchiveHandler),
             (r"/blog/search(\d+)-(\d+)/(.+)", blogs.SearchHandler),
-            (r"/blog/compose", blogs.ComposeHandler),
+            (r"/blog/compose(\d*)", blogs.ComposeHandler),
             (r"/share/entry/([^/]+)", blogs.ShareEntryHandler),
             (r"/feed", blogs.FeedHandler),
             (r"/images/upload", images.UploadHandler, dict(upload_path=os.path.join(settings["static_path"], "uploads"), naming_strategy=None)),

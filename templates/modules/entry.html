@@ -1,8 +1,8 @@
 <div class="entry">
   <h1><a id="aLinkSelf" href="/blog/entry/{{ entry.slug }}">{{ entry.title }}</a></h1>
-  <div class="date">{{ locale.format_date(entry.published, full_format=True, shorter=False) }}, [{{ get_authorname_by_id(entry.author_id) }}]</div>
+  <div class="date">{{ locale.format_date(entry.published, full_format=True, shorter=False) }}, [{{ get_authorname_by_id(entry.author_id) }}] {{ ", **加密**" if entry.is_encrypt else "" }} {{ ""  if entry.is_public else ", 仅自己可见"}}</div>
   <div class="body">{% raw entry.html %}</div>
   {% if current_user and current_user.id == entry.author_id %}
-    <div class="admin"><a href="/blog/compose?id={{ entry.id }}">{{ _("编辑") }}</a></div>
+    <div class="admin"><a href="/blog/compose{{ entry.cat_id }}?id={{ entry.id }}">{{ _("编辑") }}</a></div>
   {% end %}
 </div>

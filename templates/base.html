@@ -18,8 +18,9 @@
             </a>  大山里(inmountains.xyz)</div>
         <nav>
             {% if current_user %}
-            <a href="#" onclick="showContent('/blog/compose')">{{ "新日志" }}</a>
-            <a href="#" onclick="showContent('/blog/myblogs0-10');return false;" >我的日志</a>
+            <a href="#" onclick="showContent('/blog/compose11')">{{ "新日记" }}</a>
+            <a href="#" onclick="showContent('/blog/compose12')">{{ "新博客" }}</a>
+            <a href="#" onclick="showContent('/blog/myblogs0-10/');return false;" >我的……</a>
             <a href="/auth/logout?next={{ url_escape(request.uri) }}">-{{ "注销("+current_user.name+")" }}</a>
             {% else %}
             <a href="#" onclick="showContent('/auth/login?next={{ url_escape(request.uri) }}');return false;" >{{ "登录" }}</a> -
@@ -33,7 +34,7 @@
     <div id="content">
         <section id="mainContent"><iframe src="{{content_url}}" frameborder="0" id="contentFrame" ></iframe></section>
         <section id="sidebar">
-            <input type="text" id="searchText" placeholder="Search" onkeydown="search_keydown(event);">
+            <input type="text" id="searchText" placeholder="Search" onkeydown="search_keydown(event);"/>
             <div id="adimage"><img src="{{ static_url("images/sidebar.gif") }}" alt=""/></div>
             <nav>
                 <ul id="myBlogTree" class="ztree"></ul>
@@ -44,7 +45,9 @@
         </footer>
     </div>
 
-    <div id="footerbar">Copyright 2019 Tigerwing(tigerwingxys@qq.com)</div>
+    <div id="footerbar"><div id="git_src">Project Source: <a href="https://github.com/tigerwingxys/tigerwingblog">GitHub</a>
+        <a href="https://gitee.com/tigerwing/tigerwingblog">码云Gitee</a>
+    </div>Copyright 2019 Tigerwing(tigerwingxys@qq.com)</div>
 </div>
     <script src="{{ static_url("js/jquery.min.js") }}"></script>
     {% if current_user %}

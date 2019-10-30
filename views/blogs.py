@@ -25,13 +25,14 @@ import tornado.options
 import tornado.web
 from tornado.web import MissingArgumentError
 from tornado.escape import json_encode
-from infrastructure.utils.db_conn import NoResultError,begin_transaction,commit_transaction
+from infrastructure.utils.db_conn import NoResultError,begin_transaction,commit_transaction,rollback_transaction
 from data.author import Author
 from data.entry import Entry
+from data.catalog import Catalog
 from business.author_process import check_password
 
 DEFAULT_FETCH_SIZE = 10
-DEFAULT_CONTENT_URL = "/blog/archive0-10"
+DEFAULT_CONTENT_URL = "/blog/archive0-%d" % DEFAULT_FETCH_SIZE
 
 
 def get_authorname_by_id(author_id):
@@ -70,7 +71,7 @@ class ShareEntryHandler(BaseHandler):
         self.render("base.html", content_url=goto_url, get_authorname_by_id=get_authorname_by_id)
 
 class MyBlogHandler(BaseHandler):
-    async def get(self,offset, fetch_size):
+    async def get(self,offset, fetch_size, cat_id):
         user_id = None
         if self.current_user is not None:
             user_id = self.current_user.id
@@ -79,7 +80,7 @@ class MyBlogHandler(BaseHandler):
         fetch_size = int(fetch_size)
         if fetch_size is None or fetch_size == 0:
             fetch_size = DEFAULT_FETCH_SIZE
-        entries = await Entry().get_entries_by_author(user_id)
+        entries = await Entry().get_entries_by_author(user_id, cat_id)
         entry_cnt = len(entries)
         page_cnt = int(entry_cnt/fetch_size)
         if (entry_cnt % fetch_size) > 0:
@@ -89,7 +90,7 @@ class MyBlogHandler(BaseHandler):
         if page_cnt > 1:
             while i < page_cnt:
                 ipage = i*fetch_size
-                url = "/blog/myblogs%d-%d" % (ipage, fetch_size)
+                url = "/blog/myblogs%d-%d/%s" % (ipage, fetch_size, cat_id)
                 pages.append({"url": url, "page_title": str(ipage)})
                 i = i+1
         part_entries = entries[offset:offset+fetch_size]
@@ -104,25 +105,18 @@ class MyBlogTreeHandler(BaseHandler):
         user_id = None
         if self.current_user is not None:
             user_id = self.current_user.id
-        entries = await Entry().get_entries_by_author(user_id)
-        current_month = "0"
+        cats = await Catalog().get_catalogs_tree(author_id=user_id)
+
         result = []
-        tid = 0
-        pid = 0
-        i = 0
-        opened = False
-        for row in entries:
-            if row["published"].strftime("%Y-%m") != current_month:
-                current_month = row["published"].strftime("%Y-%m")
-                tid += 1
-                pid = tid
-                i = 0
-                if not opened:
-                    opened = True
-                    result.append({"id": tid, "pId": 0, "name": current_month,  "open": "true", "click": "false"})
-                else:
-                    result.append({"id": tid, "pId": 0, "name": current_month,  "click": "false"})
-            result.append({"id": tid*100+i, "pId": pid, "name": row["title"], "entry_url": "/blog/entry/" + row["slug"]})
+        result.append({"id": 0, "pId": -1, "open": "true", "name": "根文件夹", "click": "false"})
+        base_url = "/blog/myblogs0-%d/" % DEFAULT_FETCH_SIZE
+        for row in cats:
+            cnt = row["entries_cnt"]
+            cname = row["cat_name"] + ("(%d)" % cnt)
+            if cnt > 0:
+                result.append({"id": row["cat_id"], "pId": row["parent_id"], "open": "true", "click": "true", "name": cname, "entry_url": (base_url + str(row["cat_id"]))})
+            else:
+                result.append({"id": row["cat_id"], "pId": row["parent_id"], "open": "true", "name": cname})
         self.write(json_encode(result))
 
 
@@ -196,37 +190,35 @@ class FeedHandler(BaseHandler):
 
 class ComposeHandler(BaseHandler):
     @tornado.web.authenticated
-    async def get(self):
+    async def get(self, cat_id):
         entry_id = self.get_argument("id", None)
         entry = None
         if entry_id:
             entry = await Entry().get_entry(entry_id=entry_id)
-        self.render("compose.html", entry=entry)
+        self.render("compose.html", entry=entry, cat_id=cat_id)
 
     @tornado.web.authenticated
-    async def post(self):
+    async def post(self, cat_id):
         entry_id = self.get_argument("id", None)
         title = self.get_argument("title")
         text = self.get_argument("content-editormd-markdown-doc")
         html = self.get_argument("content-editormd-html-code")
+        search_tags = self.get_argument("search_tags")
+        # cat_id = int(self.get_argument("cat_id"))
         try:
-            check_perm = bool(self.get_argument("ispublic"))
+            is_public = bool(self.get_argument("is_public"))
         except MissingArgumentError:
-            check_perm = False
+            is_public = False
+        try:
+            is_encrypt = bool(self.get_argument("is_encrypt"))
+        except MissingArgumentError:
+            is_encrypt = False
         # html = markdown.markdown(text)
         if entry_id:
-            try:
-                entry = await Entry().get_entry(entry_id=entry_id)
-            except NoResultError:
-                raise tornado.web.HTTPError(404)
+            entry = await Entry().update_entry(entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
             slug = entry.slug
-            begin_transaction()
-            await Entry().update_entry(entry_id, title, text, html, check_perm)
-            commit_transaction()
         else:
-            begin_transaction()
-            slug = await Entry().add_entry(self.current_user, title, text, html, check_perm)
-            commit_transaction()
+            slug = await Entry().add_entry(self.current_user, title, text, html, is_public, is_encrypt, search_tags, cat_id)
         self.redirect("/blog/refresh/" + slug)
 
 
@@ -241,10 +233,8 @@ class AuthCreateHandler(BaseHandler):
             tornado.escape.utf8(self.get_argument("password")),
             bcrypt.gensalt(),
         )
-        begin_transaction()
         hashed_password = tornado.escape.to_unicode(hashed_password)
         author = await Author().add_author(self.get_argument("email"), self.get_argument("name"), hashed_password, )
-        commit_transaction()
         self.set_secure_cookie("tigerwingblog", str(author.id))
         self.redirect(self.get_argument("next", "/"))
 
