@@ -24,7 +24,7 @@ import tornado.locks
 import tornado.options
 import tornado.web
 from tornado.web import MissingArgumentError
-from tornado.escape import json_encode
+from tornado.escape import json_encode, json_decode
 from infrastructure.utils.db_conn import NoResultError,begin_transaction,commit_transaction,rollback_transaction
 from data.author import Author
 from data.entry import Entry
@@ -221,6 +221,40 @@ class ComposeHandler(BaseHandler):
             slug = await Entry().add_entry(self.current_user, title, text, html, is_public, is_encrypt, search_tags, cat_id)
         self.redirect("/blog/refresh/" + slug)
 
+class CatalogHandler(BaseHandler):
+    def check_xsrf_cookie(self) -> None:
+        pass
+
+    async def post(self):
+        args = json_decode(self.request.body)
+        method = args.get('method')
+        if method == 'add':
+            rr = await Catalog().add_catalog(args.get("cat_id"), args.get("cat_name"), self.current_user.id, args.get("parent_id"))
+            if rr:
+                result = {"success": 1, "message": "节点%s[%s]添加成功!" % (args.get('cat_name'), args.get('cat_id'))}
+            else:
+                result = {"success": 0, "message": "节点%s[%s]添加失败!" % (args.get('cat_name'), args.get('cat_id'))}
+            self.write(json_encode(result))
+        elif method == 'modify':
+            rr = await Catalog().modify_catalog(args.get("cat_id"), args.get("cat_name"))
+            if rr:
+                result = {"success": 1, "message": "节点%s[%s]修改成功!" % (args.get('cat_name'), args.get('cat_id'))}
+            else:
+                result = {"success": 0, "message": "节点%s[%s]修改失败!" % (args.get('cat_name'), args.get('cat_id'))}
+            self.write(json_encode(result))
+        elif method == 'delete':
+            rr = await Catalog().delete_catalog(args.get("cat_id"), self.current_user.id)
+            if rr:
+                result = {"success": 1, "message": "节点[%s]删除成功!" % args.get('cat_id')}
+            else:
+                result = {"success": 0, "message": "节点[%s]删除失败!" % args.get('cat_id')}
+            self.write(json_encode(result))
+        else:
+            result = {
+                "success": 0,
+                "message": "方法[%s]没有定义!" % method
+            }
+            self.write(json_encode(result))
 
 class AuthCreateHandler(BaseHandler):
     def get(self):

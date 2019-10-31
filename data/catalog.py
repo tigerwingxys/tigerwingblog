@@ -30,8 +30,18 @@ class Catalog(BaseTable):
         self.cached = True
 
     async def add_catalog(self, cat_id, cat_name, author_id, parent_id):
-        DbConnect.execute("INSERT INTO catalogs (cat_id, cat_name, author_id, parent_id ) VALUES (%s, %s, %s, %s)",
+        return DbConnect.execute("INSERT INTO catalogs (cat_id, cat_name, author_id, parent_id ) VALUES (%s, %s, %s, %s)",
                           cat_id, cat_name, author_id, parent_id)
+
+    async def modify_catalog(self, cat_id, cat_name):
+        return DbConnect.execute("update catalogs set cat_name=%s where cat_id=%s",cat_name,cat_id)
+
+    async def delete_catalog(self, cat_id, author_id):
+        es = DbConnect.query_one("select * from entries_statistic where cat_id=%s and author_id=%s",cat_id, author_id)
+        if es["entries_cnt"] > 0:
+            return False
+        DbConnect.execute("delete from entries_statistic where cat_id=%s and author_id=%s", cat_id, author_id)
+        return DbConnect.execute("delete from catalogs where cat_id=%s", cat_id)
 
     async def get_catalogs_tree(self, author_id):
         global cached_catalogs

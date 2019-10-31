@@ -116,10 +116,10 @@ header nav a {
 	box-shadow: -5px 0px 10px rgb(127, 126, 126);
 }
 
-#content #sidebar input {
+#searchText{
 	/* Search box in sidebar */
 	width: 92%;
-	height: 32px;
+	height: 22px;
 }
 #content #sidebar #adimage {
 	/* Container for Image in sidebar */
@@ -187,3 +187,35 @@ footer {
 	text-decoration: none;
 }
 
+#rMenu {
+	position: absolute;
+    border: 1px #585858;
+	-webkit-box-shadow: 3px 3px 3px rgb(127, 126, 126);
+	-moz-box-shadow: 3px 3px 3px rgb(127, 126, 126);
+	box-shadow: 3px 3px 3px rgb(127, 126, 126);
+	visibility: hidden;
+	top: 0;
+	background-color: rgb(240, 239, 239);
+    width: 200px;
+    font-size: 12px;
+	font-family: source-sans-pro ;
+	text-align: center;
+}
+#m_i_id,#m_i_name{
+	height: 13px;
+	font-size: 11px;
+	line-height: 13px;
+	text-align: left;
+	margin-top: 6px;
+	margin-bottom: 6px;
+}
+#m_i_id{width: 40px;}
+#m_i_name{width: 100px;}
+#m_add,#m_edit,#m_del{
+	height: 20px;
+	width: 30%;
+	font-size: 12px;
+	line-height: 20px;
+	margin-left: 2px;
+    margin-bottom: 4px;
+}

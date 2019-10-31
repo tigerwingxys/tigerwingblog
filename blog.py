@@ -82,6 +82,8 @@ class Application(tornado.web.Application):
             (r"/blog/search(\d+)-(\d+)/(.+)", blogs.SearchHandler),
             (r"/blog/compose(\d*)", blogs.ComposeHandler),
             (r"/share/entry/([^/]+)", blogs.ShareEntryHandler),
+            (r"/catalog/add", blogs.CatalogHandler),
+            (r"/catalog/update", blogs.CatalogHandler),
             (r"/feed", blogs.FeedHandler),
             (r"/images/upload", images.UploadHandler, dict(upload_path=os.path.join(settings["static_path"], "uploads"), naming_strategy=None)),
             (r"/images/image(.*)", images.DownloadHandler, dict(base_path=os.path.join(settings["static_path"], "uploads"))),

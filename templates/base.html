@@ -39,6 +39,13 @@
             <nav>
                 <ul id="myBlogTree" class="ztree"></ul>
             </nav>
+            <div id="rMenu">添加/编辑节点<hr>
+                当前选中：<label id="m_lab_sel"></label><br>
+                ID<input id="m_i_id" type="text" />名称<input id="m_i_name" type="text" /><br>
+                    <input type="submit" id="m_add" onclick="addTreeNode();" value="提交新增" />
+                    <input type="submit" id="m_edit" onclick="editTreeNode();" value="提交修改" />
+                    <input type="submit" id="m_del" onclick="deleteTreeNode();" value="删除当前节点" />
+            </div>
         </section>
         <footer>
 
@@ -61,32 +68,143 @@
 				}
 			},
 			callback: {
-			    onClick: onClick
+			    onClick: onClick,
+                onRightClick: onRightClick
             }
 		};
 
-        function onClick(event, treeId, treeNode, clickFlag) {
-            /*
-            var xmlhttp;
-            if (window.XMLHttpRequest) {
-                //  IE7+, Firefox, Chrome, Opera, Safari 浏览器执行代码
-                xmlhttp = new XMLHttpRequest();
-            } else {
-                // IE6, IE5 浏览器执行代码
-                xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+		function onRightClick(event, treeId, treeNode) {
+		    if( !treeNode ){
+		        zTree.cancelSelectedNode();
+		        return;
             }
-            xmlhttp.onreadystatechange = function () {
-                if (xmlhttp.readyState === 4 && xmlhttp.status === 200) {
-                    document.getElementById("mainContent").innerHTML = xmlhttp.responseText;
+		    zTree.selectNode(treeNode);
+            var info = "ID:" + treeNode.id +", 名称:" + treeNode.name;
+            console.log(info);
+            $("#m_lab_sel").html(info);
+            $("#m_i_id").attr("value", treeNode.id);
+    		showRMenu(treeNode.id, event.clientX, event.clientY);
+		}
+		function showRMenu(type, x, y) {
+			$("#rMenu").show();
+
+            y += document.body.scrollTop;
+            x += document.body.scrollLeft;
+            rMenu.css({"top":y+"px", "left":x+"px", "visibility":"visible"});
+
+			$("body").bind("mousedown", onBodyMouseDown);
+		}
+		function hideRMenu() {
+			if (rMenu) rMenu.css({"visibility": "hidden"});
+			$("body").unbind("mousedown", onBodyMouseDown);
+		}
+		function onBodyMouseDown(event){
+			if (!(event.target.id == "rMenu" || $(event.target).parents("#rMenu").length>0)) {
+				rMenu.css({"visibility" : "hidden"});
+			}
+		}
+		function addTreeNode() {
+			hideRMenu();
+			var nodes = zTree.getSelectedNodes();
+			if(!nodes || nodes.length ==0 ){
+			    return;
+            }
+			var cat_id =$("#m_i_id").val();
+			var parent_id = nodes[0].id;
+			if( cat_id ==  parent_id ){
+			    alert("ID不能与父节点相同！");
+			    return;
+            }
+			var cat_name = $("#m_i_name").val();
+			if( !cat_name || cat_name.length == 0 ){
+			    alert("节点名称不能为空！");
+			    return;
+            }
+			//ajax add
+            var results = {};
+            var param = '{ "method": "add", "cat_id": "'+cat_id+'" , "cat_name": "'+cat_name+'", "parent_id": "'+parent_id+'" }';
+            //var param = { "method": "add", "cat_id": cat_id , "cat_name": cat_name, "parent_id": parent_id }; //后台json解析出错
+            $.ajax({
+                url: "/catalog/update", type: "post", contentType: "application/json", timeout: 30000, //超时时间：30秒
+                async: false, dataType: "json", data: param,
+                success: function (data) {
+                    console.log(data);
+                    results = data;
+                    alert(data.message);
+                    //refresh myblogtree
+                    $.fn.zTree.init($("#myBlogTree"), setting, getMyBlogs());
+                }, error: function (data) {
+                    console.log(data);
+                    alert(data.message);
                 }
+            });
+		}
+		function editTreeNode() {
+			hideRMenu();
+            let nodes = zTree.getSelectedNodes();
+            if(!nodes || nodes.length ==0 ){
+                return;
             }
-            xmlhttp.open("GET", treeNode.entry_url, true);
-            xmlhttp.send();*/
-            if ( "undefined" === typeof(treeNode.entry_url) ) {
+			var cat_id =$("#m_i_id").val();
+			var parent_id = nodes[0].id;
+			if( cat_id !=  parent_id ){
+			    alert("编辑时，不能修改ID！");
+			    return;
+            }
+			var cat_name = $("#m_i_name").val();
+			if( !cat_name || cat_name.length == 0 ){
+			    alert("节点名称不能为空！");
+			    return;
+            }
+            //ajax edit
+            var results = {};
+            var param = '{ "method": "modify", "cat_id": "'+cat_id+'" , "cat_name": "'+cat_name+'" }';
+            $.ajax({
+                url: "/catalog/update", type: "post", contentType: "application/json", timeout: 30000, //超时时间：30秒
+                async: false, dataType: "json", data: param,
+                success: function (data) {
+                    console.log(data);
+                    results = data;
+                    alert(data.message);
+                    //refresh myblogtree
+                    $.fn.zTree.init($("#myBlogTree"), setting, getMyBlogs());
+                }, error: function (data) {
+                    console.log(data);
+                    alert(data.message);
+                }
+            });
+		}
+		function deleteTreeNode() {
+			hideRMenu();
+            let nodes = zTree.getSelectedNodes();
+            if(!nodes || nodes.length ==0 ){
+                return;
+            }
+			var cat_id =$("#m_i_id").val();
+            //ajax edit
+            var results = {};
+            var param = '{ "method": "delete", "cat_id": "'+cat_id+'" }';
+            $.ajax({
+                url: "/catalog/update", type: "post", contentType: "application/json", timeout: 30000, //超时时间：30秒
+                async: false, dataType: "json", data: param,
+                success: function (data) {
+                    console.log(data);
+                    results = data;
+                    alert(data.message);
+                    //refresh myblogtree
+                    $.fn.zTree.init($("#myBlogTree"), setting, getMyBlogs());
+                }, error: function (data) {
+                    console.log(data);
+                    alert(data.message);
+                }
+            });
+		}
+
+        function onClick(event, treeId, treeNode, clickFlag) {
+            if ( "undefined" == typeof(treeNode.entry_url) ) {
                 return;
             }
             showContent(treeNode.entry_url);
-
         }
 
         function getMyBlogs() {
@@ -108,8 +226,11 @@
             return tree;
         }
 
+        var zTree, rMenu;
 		$(document).ready(function(){
 			$.fn.zTree.init($("#myBlogTree"), setting, getMyBlogs());
+			zTree = $.fn.zTree.getZTreeObj("myBlogTree");
+			rMenu = $("#rMenu");
 		});
 		//-->
     </SCRIPT>

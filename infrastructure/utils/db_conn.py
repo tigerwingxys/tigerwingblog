@@ -61,6 +61,7 @@ class DbConnect:
         with conn:
             with conn.cursor() as cur:
                 cur.execute(stmt, args)
+                return cur.rowcount
 
     @staticmethod
     def query(stmt, position_offset=0, fetch_size=None, *args):

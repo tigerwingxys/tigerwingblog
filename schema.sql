@@ -115,3 +115,17 @@ begin
 end; $$
 language "plpgsql";
 create trigger entry_cache_flag_trigger after insert on entries for each row execute procedure update_entry_cache_flag ();
+
+#add 2019-10-31
+drop trigger catalogs_update_cat_trigger on catalogs;
+drop trigger catalogs_delete_cat_trigger on catalogs;
+drop function catalogs_update_stat;
+create function catalogs_update_stat()
+returns trigger as $$
+begin
+    update cache_flag set time_flag = current_timestamp where cache_name = 'catalog';
+    return new;
+end;$$
+language "plpgsql";
+create trigger catalogs_update_cat_trigger after update on catalogs execute procedure catalogs_update_stat();
+create trigger catalogs_delete_cat_trigger after delete on catalogs execute procedure catalogs_update_stat();

@@ -107,13 +107,13 @@
       function setEncrypt() {
           let entry_password = document.getElementById("entry_password");
           let isEncrypt = document.getElementById("is_encrypt");
-          if( entry_password.value.length === 0 ){
+          if( entry_password.value.length == 0 ){
               alert("加密解密时，密码不能为空！");
               isEncrypt.checked = !isEncrypt.checked;
               return;
           }
           //检查是加密还是解密
-          if( isEncrypt.checked === true){
+          if( isEncrypt.checked == true){
               let ss = sjcl.encrypt(entry_password.value, contentEditor.getValue());
               contentEditor.setValue(ss);
           }else {
