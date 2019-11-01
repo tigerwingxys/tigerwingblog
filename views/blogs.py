@@ -72,29 +72,41 @@ class ShareEntryHandler(BaseHandler):
 
 class MyBlogHandler(BaseHandler):
     async def get(self,offset, fetch_size, cat_id):
-        user_id = None
-        if self.current_user is not None:
-            user_id = self.current_user.id
-
+        user_id = self.current_user.id
         offset = int(offset)
         fetch_size = int(fetch_size)
         if fetch_size is None or fetch_size == 0:
             fetch_size = DEFAULT_FETCH_SIZE
-        entries = await Entry().get_entries_by_author(user_id, cat_id)
+        origin_entries, key_entries = await Entry().get_entries_by_author(user_id, cat_id)
+        try:
+            tag_key = self.get_argument("tag_key")
+        except MissingArgumentError:
+            tag_key = ""
+        entries = key_entries[tag_key] if len(tag_key) != 0 else origin_entries
         entry_cnt = len(entries)
         page_cnt = int(entry_cnt/fetch_size)
         if (entry_cnt % fetch_size) > 0:
             page_cnt += 1
         i = 0
         pages = []
+        url_suffix = ""
+        if len(tag_key) > 0:
+            pages.append({"url": "#", "page_title": tag_key})
+            url_suffix = "?tag_key="+tag_key
         if page_cnt > 1:
             while i < page_cnt:
                 ipage = i*fetch_size
                 url = "/blog/myblogs%d-%d/%s" % (ipage, fetch_size, cat_id)
-                pages.append({"url": url, "page_title": str(ipage)})
+                pages.append({"url": url+url_suffix, "page_title": str(ipage)})
                 i = i+1
+        if len(tag_key) == 0:
+            url = "/blog/myblogs0-%d/%s?tag_key=" % (fetch_size, cat_id)
+            for key in key_entries.keys():
+                cnt = len(key_entries[key])
+                tt = "%s(%d)" % (key, cnt)
+                pages.append({"url": url + key, "page_title": tt})
         part_entries = entries[offset:offset+fetch_size]
-        self.render("archive.html", entries=part_entries, pages=pages, current_page=offset, get_authorname_by_id=get_authorname_by_id)
+        self.render("archive.html", entries=part_entries, pages=pages, current_page=str(offset), get_authorname_by_id=get_authorname_by_id)
 
 
 class MyBlogTreeHandler(BaseHandler):
@@ -108,8 +120,8 @@ class MyBlogTreeHandler(BaseHandler):
         cats = await Catalog().get_catalogs_tree(author_id=user_id)
 
         result = []
-        result.append({"id": 0, "pId": -1, "open": "true", "name": "根文件夹", "click": "false"})
         base_url = "/blog/myblogs0-%d/" % DEFAULT_FETCH_SIZE
+        result.append({"id": 0, "pId": -1, "open": "true", "name": "根文件夹", "entry_url": base_url})
         for row in cats:
             cnt = row["entries_cnt"]
             cname = row["cat_name"] + ("(%d)" % cnt)
@@ -140,21 +152,36 @@ class ArchiveHandler(BaseHandler):
         fetch_size = int(fetch_size)
         if fetch_size is None or fetch_size == 0:
             fetch_size = DEFAULT_FETCH_SIZE
-        entries = await Entry().get_entries()
+        origin_entries, key_entries = await Entry().get_entries()
+        try:
+            tag_key = self.get_argument("tag_key")
+        except MissingArgumentError:
+            tag_key = ""
+        entries = key_entries[tag_key] if len(tag_key) != 0 else origin_entries
         entry_cnt = len(entries)
         page_cnt = int(entry_cnt/fetch_size)
         if (entry_cnt % fetch_size) > 0:
             page_cnt += 1
         i = 0
         pages = []
+        url_suffix = ""
+        if len(tag_key) > 0:
+            pages.append({"url": "#", "page_title": tag_key})
+            url_suffix = "?tag_key="+tag_key
         if page_cnt > 1:
             while i < page_cnt:
                 ipage = i*fetch_size
                 url = "/blog/archive%d-%d" % (ipage, fetch_size)
-                pages.append({"url": url, "page_title": str(ipage)})
+                pages.append({"url": url+url_suffix, "page_title": str(ipage)})
                 i = i+1
+        if len(tag_key) == 0:
+            url = "/blog/archive0-%d?tag_key=" % fetch_size
+            for key in key_entries.keys():
+                cnt = len(key_entries[key])
+                tt = "%s(%d)" % (key, cnt)
+                pages.append({"url": url + key, "page_title": tt})
         part_entries = entries[offset:offset+fetch_size]
-        self.render("archive.html", entries=part_entries, pages=pages, current_page=offset, get_authorname_by_id=get_authorname_by_id)
+        self.render("archive.html", entries=part_entries, pages=pages, current_page=str(offset), get_authorname_by_id=get_authorname_by_id)
 
 
 class SearchHandler(BaseHandler):
@@ -183,7 +210,7 @@ class SearchHandler(BaseHandler):
 
 class FeedHandler(BaseHandler):
     async def get(self):
-        entries = await Entry().get_entries(fetch_size=10)
+        entries, key_entries = await Entry().get_entries(fetch_size=10)
         self.set_header("Content-Type", "application/atom+xml")
         self.render("feed.xml", entries=entries)
 

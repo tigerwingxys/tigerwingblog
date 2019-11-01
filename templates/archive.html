@@ -33,13 +33,18 @@
   <ul class="archive">
       <li>{{ '分页：' if len(pages)>0 else '' }}
           {% for page in pages %}
-            <a href="{{ page["url"] }}" style="{{ 'font-weight: bold' if int(page["page_title"])==current_page else '' }};">{{ page["page_title"] }}</a>
+            <a href="{{ page["url"] }}" style="{{ 'font-weight: bold' if page["page_title"]==current_page else '' }};">{{ page["page_title"] }}</a>
           {% end %}
       </li>
     {% for entry in entries %}
       <li>
           <div class="title"><a href="/blog/entry/{{ entry.slug }}">{{ entry.title }}</a>
-              <i class="sec_title">, {{ locale.format_date(entry.published, full_format=True) }}, [{{ get_authorname_by_id(entry.author_id) }}] {{ ", **加密**" if entry.is_encrypt else "" }} {{ ""  if entry.is_public else ", 仅自己可见"}}</i></div>
+              <i class="sec_title">, {{ entry.published.strftime('%Y-%m-%d %H:%M:%S') }},
+                  [{{ get_authorname_by_id(entry.author_id) }}]
+                  {{ ", **加密**" if entry.is_encrypt else "" }}
+                  {{ ""  if entry.is_public else ", 仅自己可见"}}
+                  {{ ",关键词:"+entry.search_tags if entry.search_tags is not None else "" }}
+              </i></div>
           <div id="entry_brief">{{ entry.markdown }}</div>
       </li>
     {% end %}

@@ -88,9 +88,10 @@ class Entry(BaseTable):
             if fetch_size is not None and fetch_size > max_fetch_size:
                 fetch_size = max_fetch_size
             cached_entries[author_id]["entries"] = DbConnect.query("SELECT * FROM entries where is_public = true ORDER BY published DESC", position_offset, fetch_size)
+            cached_entries[author_id]["key_entries"] = self.search_tags_entries(cached_entries[author_id]["entries"])
             cached_entries[author_id]["cache_query_time"] = cache_time
 
-        return cached_entries[author_id]["entries"]
+        return cached_entries[author_id]["entries"], cached_entries[author_id]["key_entries"]
 
     async def get_entries_by_author(self, author_id, cat_id=None, position_offset=0, fetch_size=None):
         if author_id is None or author_id == 0:
@@ -111,15 +112,30 @@ class Entry(BaseTable):
                 cached_entries[key]["entries"] = DbConnect.query("SELECT * FROM entries WHERE author_id = %s ORDER BY published DESC", position_offset, fetch_size, author_id)
             else:
                 cached_entries[key]["entries"] = DbConnect.query("SELECT * FROM entries WHERE author_id = %s and cat_id = %s ORDER BY published DESC", position_offset, fetch_size, author_id, cat_id)
+            cached_entries[key]["key_entries"] = self.search_tags_entries(cached_entries[key]["entries"])
             cached_entries[key]["cache_query_time"] = cache_time
 
-        return cached_entries[key]["entries"]
+        return cached_entries[key]["entries"], cached_entries[key]["key_entries"]
 
     @cached(cache=TTLCache(maxsize=1024, ttl=3600))
     async def search_entries(self, search_text):
-        entries = await self.get_entries()
+        entries, key_entries = await self.get_entries()
         result = []
         for entry in entries:
-            if re.search(search_text,entry["title"])is not None or re.search(search_text, entry["markdown"]) is not None:
+            if re.search(search_text, entry["title"]) or (entry["search_tags"] and re.search(search_text, entry["search_tags"]))\
+                    or re.search(search_text, entry["markdown"]):
                 result.append(entry)
         return result
+
+    def search_tags_entries(self, entries):
+        key_entries = dict()
+        for entry in entries:
+            tags = entry["search_tags"]
+            if tags is None:
+                continue
+            for key in tags.split():
+                if key not in key_entries.keys():
+                    key_entries[key] = []
+                key_entries[key].append(entry)
+
+        return key_entries

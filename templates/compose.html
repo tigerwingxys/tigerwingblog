@@ -7,7 +7,7 @@
 
 {% block body %}
   <form action="{{ request.path }}" method="post" class="compose">
-      <div id="compose_title" style="padding-left: 4px;text-align: left;" ><h2>标题：<input name="title" style="width: 40%;" type="text" value="{{ entry.title if entry else "" }}" placeholder="请输入文章标题……"/></h2>
+      <div id="compose_title" style="padding-left: 4px;text-align: left;" ><h2>标题：<input name="title" style="width: 40%;" type="text" value="{{ entry.title if entry else (datetime.datetime.now().strftime('%Y-%m-%d(%A)') if cat_id=='11' else "") }}" placeholder="请输入文章标题……"/></h2>
           <input type="checkbox" name="is_public" id="is_public" {{ "checked"  if entry and entry.is_public else ""}}/>
           <label for="is_public" title="打勾后允许所有人查看">是否公开</label>
           <input type="checkbox" name="is_encrypt" id="is_encrypt" onclick="setEncrypt();" style="margin-left: 20px;" {{ "checked"  if entry and entry.is_encrypt else ""}}/>
@@ -33,7 +33,7 @@
 
 {% block bottom %}
     <script src="{{ static_url("js/jquery.min.js") }}"></script>
-    <script src="{{ static_url("editormd/plugins/image-clipboard/image-clipboard.js") }}"></script>
+    <!-- <script src="{{ static_url("editormd/plugins/image-clipboard/image-clipboard.js") }}"></script> -->
     <script src="{{ static_url("js/editormd.min.js") }}"></script>
     <script type="text/javascript">
         var contentEditor;
@@ -66,7 +66,9 @@
                 imageUploadURL : "/images/upload",
                 onload : function() {
                     console.log('onload', this);
-                    this.imagePaste();
+                    editormd.loadPlugin("/static/editormd/plugins/image-clipboard/image-clipboard",function () {
+                        contentEditor.imagePaste();
+                    });
                     //this.fullscreen();
                     //this.unwatch();
                     //this.watch().fullscreen();

@@ -20,7 +20,7 @@
             {% if current_user %}
             <a href="#" onclick="showContent('/blog/compose11')">{{ "新日记" }}</a>
             <a href="#" onclick="showContent('/blog/compose12')">{{ "新博客" }}</a>
-            <a href="#" onclick="showContent('/blog/myblogs0-10/');return false;" >我的……</a>
+            <!-- <a href="#" onclick="showContent('/blog/myblogs0-10/');return false;" >我的……</a> -->
             <a href="/auth/logout?next={{ url_escape(request.uri) }}">-{{ "注销("+current_user.name+")" }}</a>
             {% else %}
             <a href="#" onclick="showContent('/auth/login?next={{ url_escape(request.uri) }}');return false;" >{{ "登录" }}</a> -
@@ -34,17 +34,20 @@
     <div id="content">
         <section id="mainContent"><iframe src="{{content_url}}" frameborder="0" id="contentFrame" ></iframe></section>
         <section id="sidebar">
-            <input type="text" id="searchText" placeholder="Search" onkeydown="search_keydown(event);"/>
+            <input type="text" id="searchText" placeholder="从标题、关键词、内容中检索信息" onkeydown="search_keydown(event);"/>
             <div id="adimage"><img src="{{ static_url("images/sidebar.gif") }}" alt=""/></div>
             <nav>
                 <ul id="myBlogTree" class="ztree"></ul>
             </nav>
-            <div id="rMenu">添加/编辑节点<hr>
+            <div id="rMenu">
+                <input type="submit" id="m_new_blog" onclick="newBlog();" value="新博客" title="在当前文件夹新建博客"/>
+                <input type="submit" id="m_new_diary" onclick="newDiary();" value="新日记" title="在日记文件夹下新建日记"/><hr>
                 当前选中：<label id="m_lab_sel"></label><br>
-                ID<input id="m_i_id" type="text" />名称<input id="m_i_name" type="text" /><br>
+                ID<input id="m_i_id" type="text" title="如果新增节点，请在当前编号后输入两位数字；如果当前节点是根文件夹，请输入>13的两位数字编码"/>
+                名称<input id="m_i_name" type="text" title="请输入新增节点或修改后的节点名称"/><br>
                     <input type="submit" id="m_add" onclick="addTreeNode();" value="提交新增" />
                     <input type="submit" id="m_edit" onclick="editTreeNode();" value="提交修改" />
-                    <input type="submit" id="m_del" onclick="deleteTreeNode();" value="删除当前节点" />
+                    <input type="submit" id="m_del" onclick="deleteTreeNode();" value="删除选中" />
             </div>
         </section>
         <footer>
@@ -103,6 +106,18 @@
 				rMenu.css({"visibility" : "hidden"});
 			}
 		}
+		function newDiary() {
+            hideRMenu();
+            showContent("/blog/compose11");
+        }
+        function newBlog() {
+            hideRMenu();
+			var nodes = zTree.getSelectedNodes();
+			if(!nodes || nodes.length ==0 ){
+			    return;
+            }
+			showContent("/blog/compose"+nodes[0].id);
+        }
 		function addTreeNode() {
 			hideRMenu();
 			var nodes = zTree.getSelectedNodes();
@@ -237,9 +252,14 @@
     {% end %}
     <SCRIPT type="text/javascript">
 		function showContent(gotoURL){
-		    iframeObj = document.getElementById("contentFrame");
+		    var iframeObj = document.getElementById("contentFrame");
 		    iframeObj.setAttribute("src",gotoURL);
-            iframeObj.height=(iframeObj.Document?iframeObj.Document.body.scrollHeight:iframeObj.contentDocument.body.offsetHeight);
+            var hs = 1.1 * (iframeObj.Document?iframeObj.Document.body.scrollHeight:iframeObj.contentDocument.body.offsetHeight);
+		    if( hs < 760 ){
+		        hs = 760;
+            }
+		    var hh = hs.toString();
+            iframeObj.style.height= hh+"px" ;
         };
 		
 		function search_keydown(e) {

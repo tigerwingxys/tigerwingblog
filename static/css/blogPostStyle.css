@@ -195,11 +195,13 @@ footer {
 	box-shadow: 3px 3px 3px rgb(127, 126, 126);
 	visibility: hidden;
 	top: 0;
-	background-color: rgb(240, 239, 239);
+	background-color: rgb(249, 248, 248);
     width: 200px;
     font-size: 12px;
 	font-family: source-sans-pro ;
 	text-align: center;
+	padding-top: 4px;
+	padding-bottom: 6px;
 }
 #m_i_id,#m_i_name{
 	height: 13px;
@@ -207,15 +209,20 @@ footer {
 	line-height: 13px;
 	text-align: left;
 	margin-top: 6px;
-	margin-bottom: 6px;
+	margin-bottom: 4px;
 }
 #m_i_id{width: 40px;}
 #m_i_name{width: 100px;}
-#m_add,#m_edit,#m_del{
+#m_add,#m_edit,#m_del,#m_new_blog,#m_new_diary{
+	text-align: center;
 	height: 20px;
 	width: 30%;
 	font-size: 12px;
-	line-height: 20px;
+	line-height: 12px;
 	margin-left: 2px;
     margin-bottom: 4px;
+	margin-top: 4px;
+}
+#m_new_diary,#m_new_blog{
+	width: 45%;
 }
