@@ -33,12 +33,12 @@
   <ul class="archive">
       <li>{{ '分页：' if len(pages)>0 else '' }}
           {% for page in pages %}
-            <a href="{{ page["url"] }}" style="{{ 'font-weight: bold' if page["page_title"]==current_page else '' }};">{{ page["page_title"] }}</a>
+            <a href="javascript:" onclick="window.location.href='{{ page["url"] }}'" style="{{ 'font-weight: bold' if page["page_title"]==current_page else '' }};">{{ page["page_title"] }}</a>
           {% end %}
       </li>
     {% for entry in entries %}
       <li>
-          <div class="title"><a href="/blog/entry/{{ entry.slug }}">{{ entry.title }}</a>
+          <div class="title"><a href="javascript:" onclick="window.location.href='/blog/entry/{{ entry.slug }}'">{{ entry.title }}</a>
               <i class="sec_title">, {{ entry.published.strftime('%Y-%m-%d %H:%M:%S') }},
                   [{{ get_authorname_by_id(entry.author_id) }}]
                   {{ ", **加密**" if entry.is_encrypt else "" }}

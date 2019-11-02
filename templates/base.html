@@ -14,17 +14,17 @@
 <div id="mainwrapper">
     <header>
 
-        <div id="logo"><a href="#" onclick="showContent('/blog/archive0-10')">{{ escape(handler.settings["blog_title"]) }}
+        <div id="logo"><a href="javascript:" onclick="showContent('/blog/archive0-10')">{{ escape(handler.settings["blog_title"]) }}
             </a>  大山里(inmountains.xyz)</div>
         <nav>
             {% if current_user %}
-            <a href="#" onclick="showContent('/blog/compose11')">{{ "新日记" }}</a>
-            <a href="#" onclick="showContent('/blog/compose12')">{{ "新博客" }}</a>
+            <a href="javascript:" onclick="showContent('/blog/compose11')">{{ "新日记" }}</a>
+            <a href="javascript:" onclick="showContent('/blog/compose12')">{{ "新博客" }}</a>
             <!-- <a href="#" onclick="showContent('/blog/myblogs0-10/');return false;" >我的……</a> -->
-            <a href="/auth/logout?next={{ url_escape(request.uri) }}">-{{ "注销("+current_user.name+")" }}</a>
+            <a href="javascript:" onclick="window.location.href='/auth/logout?next={{ url_escape(request.uri) }}'">-{{ "注销("+current_user.name+")" }}</a>
             {% else %}
-            <a href="#" onclick="showContent('/auth/login?next={{ url_escape(request.uri) }}');return false;" >{{ "登录" }}</a> -
-            <a href="#" onclick="showContent('/auth/create');return false;">{{ "注册新用户" }}</a>
+            <a href="javascript:" onclick="showContent('/auth/login?next={{ url_escape(request.uri) }}');return false;" >{{ "登录" }}</a> -
+            <a href="javascript:" onclick="showContent('/auth/create');return false;">{{ "注册新用户" }}</a>
             <!-- {% raw _('<a href="%(url)s">登录</a> - <a href="/auth/create">注册新用户</a>') % {"url": "/auth/login?next=" + url_escape(request.uri)} %} -->
             {% end %}
         </nav>
