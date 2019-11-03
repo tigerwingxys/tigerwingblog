@@ -229,34 +229,9 @@ footer {
 
 /* Mobile view */
 @media screen and (max-width:480px) {
-#mainwrapper header #logo {
-	/* Company Logo text in header */
-	width: 96%;
-	margin-left: 2%;
-}
-#mainwrapper header nav {
-	/*navigation links in header */
-	text-align: center;
-	background-color: rgba(255,255,255,1.00);
-	width: 98%;
-}
-#content #sidebar #adimage {
-	/* Container for image in sidebar */
-	width: 100%;
-}
-#content #sidebar nav {
-	/* Navigation bar for links in sidebar */
-	width: 96%;
-	padding-top: 7px;
-}
-#sidebar nav ul li {
-	display: inline-block;
-	width: 32%;
-	text-align: center;
-}
-#mainwrapper #content #sidebar {
+#sidebar {
 	/* sidebar */
-	padding-bottom: 0px;
+	display: none;
 }
 #content .notOnDesktop {
 	/* Search box shown only in mobile and tablet view */
@@ -265,16 +240,7 @@ footer {
 	padding-left: 0px;
 	padding-right: 0px;
 }
-#content .notOnDesktop input {
-	width: 80%;
-	text-align: center;
-}
-#content #mainContent h3 {
-	/* Title under maincontent, if any */
-	font-size: 14px;
-}
-#content footer article {
-	/* Each foter article */
-	width: 96%;
+#content #mainContent {
+    width: 100%;
 }
 }
