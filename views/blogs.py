@@ -139,7 +139,7 @@ class blogEntryHandler(BaseHandler):
 class blogRefreshEntryHandler(BaseHandler):
     async def get(self, slug):
         goto_url = "/?goto="+slug
-        self.render("login_ok.html", goto_url=goto_url)
+        self.render("login_ok.html", goto_url=goto_url, message='ok', delay=1)
 
 
 class ArchiveHandler(BaseHandler):
@@ -332,7 +332,7 @@ class AuthCreateHandler(BaseHandler):
         message = "欢迎注册%s，激活邮件已经发送到您的邮箱[%s]，收到邮件后点击激活链接即可激活帐户。" \
                   "提示：激活之前无法登录系统，但可以继续浏览他人写的博客。5秒钟后跳转到主页" \
                   % (self.settings["blog_title"], author.email)
-        self.render("login_ok.html", message=message, goto_url="/")
+        self.render("login_ok.html", message=message, goto_url="/", delay=5000)
 
 
 class AuthActivateHandler(BaseHandler):
@@ -345,20 +345,20 @@ class AuthActivateHandler(BaseHandler):
             author = Author().get_author(author_id)
         except NoResultError:
             self.clear_cookie("tigerwingblog")
-            self.render("login_ok.html", message="帐户不存在！5秒后跳转到主页……", goto_url="/")
+            self.render("login_ok.html", message="帐户不存在！5秒后跳转到主页……", goto_url="/", delay=5000)
             return
         if email != author.email or author.create_date.strftime('%Y-%m-%d %H:%M:%S') != create_date:
-            self.render("login_ok.html", message="email错误！5秒后跳转到主页……", goto_url="/")
+            self.render("login_ok.html", message="email错误！5秒后跳转到主页……", goto_url="/", delay=5000)
             self.clear_cookie("tigerwingblog")
             return
 
         if await check_password(author.activate_key, key):
             await Author().activate_author(author_id)
             self.set_secure_cookie("tigerwingblog", author_id)
-            self.render("login_ok.html", message="email(%s)验证成功, 5秒后跳转到主页……" % email, goto_url="/")
+            self.render("login_ok.html", message="email(%s)验证成功, 1秒后跳转到主页……" % email, goto_url="/", delay=1000)
         else:
             self.clear_cookie("tigerwingblog")
-            self.render("login_ok.html", message="email(%s)验证失败！5秒后跳转到主页……" % email, goto_url="/")
+            self.render("login_ok.html", message="email(%s)验证失败！5秒后跳转到主页……" % email, goto_url="/", delay=5000)
 
 class AuthLoginHandler(BaseHandler):
     async def get(self):
@@ -374,7 +374,7 @@ class AuthLoginHandler(BaseHandler):
             self.render("login.html", error="帐户未激活，请到注册邮箱中点击激活链接激活帐户！")
         if await check_password(self.get_argument("password"), author.hashed_password):
             self.set_secure_cookie("tigerwingblog", str(author.id))
-            self.render("login_ok.html", message="登录成功，5秒钟后跳转到主页", goto_url="/")
+            self.render("login_ok.html", message="登录成功，跳转到主页", goto_url="/", delay=1)
         else:
             self.render("login.html", error="密码错误！")
 
