@@ -19,6 +19,7 @@
 from infrastructure.data.bases import BaseTable
 from infrastructure.utils.db_conn import DbConnect
 from data.cache_flag import CacheFlag
+from data.entries_statistic import EntriesStatistic
 
 
 import unicodedata
@@ -47,13 +48,17 @@ class Entry(BaseTable):
             if not e:
                 break
             slug += "-2"
-        DbConnect.execute(
+        entry = DbConnect.execute_returning(
             "INSERT INTO entries (author_id,title,slug,markdown,html,is_public,is_encrypt,search_tags,cat_id,published,updated)"
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) returning create_date",
             author.id, title, slug, text, html, is_public, is_encrypt, search_tags, cat_id)
+        EntriesStatistic().plus_one(author.id, cat_id)
+        CacheFlag().update_cache_flag("entry", new_time=entry.create_date)
+        CacheFlag().update_cache_flag("catalog", new_time=entry.create_date, author_id=author.id)
         return slug
 
     async def update_entry(self, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id):
+        CacheFlag().update_cache_flag("entry")
         return DbConnect.execute_returning(
             "UPDATE entries SET title = %s, markdown = %s, html = %s , is_public = %s , updated=current_timestamp, "
             "is_encrypt=%s, search_tags=%s, cat_id=%s"

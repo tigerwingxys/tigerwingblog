@@ -37,6 +37,11 @@ define("db_port", default=5432, help="blog database port")
 define("db_database", default="blog", help="blog database name")
 define("db_user", default="blog", help="blog database user")
 define("db_password", default="blog", help="blog database password")
+define("domain", default="https://inmountains.xyz", help="blog home address")
+define("mail_user", default="tigerwingxys@qq.com", help="mail user")
+define("mail_password", default="password", help="mail password")
+define("mail_host", default="smtp.qq.com", help="mail server ip address")
+define("mail_port", default="465", help="mail server port")
 
 
 def include(module):
@@ -64,6 +69,11 @@ class Application(tornado.web.Application):
 
         settings = dict(
             blog_title=u"虎翼博客",
+            home_domain=options.domain,
+            mail_user=options.mail_user,
+            mail_password=options.mail_password,
+            mail_host=options.mail_host,
+            mail_port=options.mail_port,
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             ui_modules={"Entry": blogs.EntryModule},
@@ -88,6 +98,7 @@ class Application(tornado.web.Application):
             (r"/images/upload", images.UploadHandler, dict(upload_path=os.path.join(settings["static_path"], "uploads"), naming_strategy=None)),
             (r"/images/image(.*)", images.DownloadHandler, dict(base_path=os.path.join(settings["static_path"], "uploads"))),
             (r"/auth/create", blogs.AuthCreateHandler),
+            (r"/auth/activate", blogs.AuthActivateHandler),
             (r"/auth/login", blogs.AuthLoginHandler),
             (r"/auth/logout", blogs.AuthLogoutHandler),
         ]

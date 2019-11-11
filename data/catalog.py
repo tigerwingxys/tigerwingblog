@@ -19,6 +19,7 @@
 from infrastructure.utils.db_conn import DbConnect
 from infrastructure.data.bases import BaseTable
 from data.cache_flag import CacheFlag
+from data.entries_statistic import EntriesStatistic
 import datetime
 
 
@@ -30,18 +31,22 @@ class Catalog(BaseTable):
         self.cached = True
 
     async def add_catalog(self, cat_id, cat_name, author_id, parent_id):
-        return DbConnect.execute("INSERT INTO catalogs (cat_id, cat_name, author_id, parent_id ) VALUES (%s, %s, %s, %s)",
+        rr = DbConnect.execute_returning("INSERT INTO catalogs (cat_id, cat_name, author_id, parent_id ) VALUES (%s, %s, %s, %s) returning *",
                           cat_id, cat_name, author_id, parent_id)
+        CacheFlag().update_cache_flag("catalog", new_time=rr.create_date, author_id=author_id)
+        EntriesStatistic().add(author_id,cat_id,parent_id)
 
-    async def modify_catalog(self, cat_id, cat_name):
-        return DbConnect.execute("update catalogs set cat_name=%s where cat_id=%s",cat_name,cat_id)
+    async def modify_catalog(self, cat_id, cat_name, author_id):
+        DbConnect.execute("update catalogs set cat_name=%s where cat_id=%s and author_id=%s", cat_name, cat_id, author_id)
+        CacheFlag().update_cache_flag("catalog", author_id=author_id)
 
     async def delete_catalog(self, cat_id, author_id):
         es = DbConnect.query_one("select * from entries_statistic where cat_id=%s and author_id=%s",cat_id, author_id)
         if es["entries_cnt"] > 0:
             return False
-        DbConnect.execute("delete from entries_statistic where cat_id=%s and author_id=%s", cat_id, author_id)
-        return DbConnect.execute("delete from catalogs where cat_id=%s", cat_id)
+        EntriesStatistic().delete(author_id, cat_id)
+        DbConnect.execute("delete from catalogs where cat_id=%s and author_id=%s", cat_id, author_id)
+        CacheFlag().update_cache_flag("catalog", author_id=author_id)
 
     async def get_catalogs_tree(self, author_id):
         global cached_catalogs
@@ -50,13 +55,13 @@ class Catalog(BaseTable):
             cached_catalogs[author_id]["cache_query_time"] = datetime.datetime(2000, 1, 1)
             cached_catalogs[author_id]["catalogs"] = []
 
-        cache_time = CacheFlag().get_cache_flag(cache_name="catalog")["time_flag"]
+        cache_time = CacheFlag().get_cache_flag(cache_name="catalog", author_id=author_id)["time_flag"]
         if cached_catalogs[author_id]["cache_query_time"] < cache_time:
             rr = DbConnect.query("with RECURSIVE es as ( "
-                                 "select a.cat_id,a.parent_id,a.entries_cnt,array[a.cat_id] as path from entries_statistic a where author_id=%s and parent_id=0 "
+                                 "select a.cat_id,a.parent_id,a.entries_cnt,array[a.cat_id] as path,a.author_id from entries_statistic a where author_id=%s and parent_id=0 "
                                  "union "
-                                 "select k.cat_id,k.parent_id,k.entries_cnt,c.path||k.cat_id from entries_statistic k inner join es c on c.cat_id = k.parent_id "
-                                 ")select es.cat_id,es.parent_id,es.entries_cnt,cs.cat_name from es "
+                                 "select k.cat_id,k.parent_id,k.entries_cnt,c.path||k.cat_id,k.author_id from entries_statistic k inner join es c on c.cat_id = k.parent_id "
+                                 " and c.author_id=k.author_id)select es.cat_id,es.parent_id,es.entries_cnt,cs.cat_name from es "
                                  "inner join catalogs cs on cs.cat_id=es.cat_id order by es.path", 0, None, author_id)
             cached_catalogs[author_id]["catalogs"] = rr
             cached_catalogs[author_id]["cache_query_time"] = cache_time

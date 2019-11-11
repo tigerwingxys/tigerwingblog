@@ -36,7 +36,7 @@ DEFAULT_CONTENT_URL = "/blog/archive0-%d" % DEFAULT_FETCH_SIZE
 
 
 def get_authorname_by_id(author_id):
-    author = Author().get_author_by_id(author_id)
+    author = Author().get_author(author_id)
     name = author_id
     if author is not None:
         name = author.name
@@ -49,11 +49,7 @@ class BaseHandler(tornado.web.RequestHandler):
         # self.current_user in prepare instead.
         user_id = self.get_secure_cookie("tigerwingblog")
         if user_id:
-            self.current_user = await Author().get_author(int(user_id))
-
-    def any_author_exists(self):
-        return True
-
+            self.current_user = Author().get_author(int(user_id))
 
 class HomeHandler(BaseHandler):
     async def get(self):
@@ -263,7 +259,7 @@ class CatalogHandler(BaseHandler):
                 result = {"success": 0, "message": "节点%s[%s]添加失败!" % (args.get('cat_name'), args.get('cat_id'))}
             self.write(json_encode(result))
         elif method == 'modify':
-            rr = await Catalog().modify_catalog(args.get("cat_id"), args.get("cat_name"))
+            rr = await Catalog().modify_catalog(args.get("cat_id"), args.get("cat_name"), self.current_user.id)
             if rr:
                 result = {"success": 1, "message": "节点%s[%s]修改成功!" % (args.get('cat_name'), args.get('cat_id'))}
             else:
@@ -285,9 +281,17 @@ class CatalogHandler(BaseHandler):
 
 class AuthCreateHandler(BaseHandler):
     def get(self):
-        self.render("create_author.html")
+        self.render("create_author.html", error=None)
 
     async def post(self):
+        try:
+            author1 = await Author().get_author_by_email(self.get_argument("email"))
+        except NoResultError:
+            pass
+        else:
+            self.render("create_author.html", error="email已经存在，请不要重复注册！")
+            return
+
         hashed_password = await tornado.ioloop.IOLoop.current().run_in_executor(
             None,
             bcrypt.hashpw,
@@ -295,30 +299,84 @@ class AuthCreateHandler(BaseHandler):
             bcrypt.gensalt(),
         )
         hashed_password = tornado.escape.to_unicode(hashed_password)
-        author = await Author().add_author(self.get_argument("email"), self.get_argument("name"), hashed_password, )
-        self.set_secure_cookie("tigerwingblog", str(author.id))
-        self.redirect(self.get_argument("next", "/"))
 
+        import random, string, time
+        key = ''.join(random.sample(string.ascii_letters, 8))
+        key = key + str(time.perf_counter())
+        hash_key = await tornado.ioloop.IOLoop.current().run_in_executor(
+            None,
+            bcrypt.hashpw,
+            tornado.escape.utf8(key),
+            bcrypt.gensalt(),
+        )
+        hash_key = tornado.escape.to_unicode(hash_key)
+
+        author = await Author().add_author(self.get_argument("email"), self.get_argument("name"), hashed_password, key)
+
+        act_link = '%s/auth/activate?author_id=%s&activate_key=%s&email=%s&create_date=%s' % \
+                   (self.settings["home_domain"], author.id, hash_key, author.email, author.create_date.strftime('%Y-%m-%d %H:%M:%S'))
+
+        mail_content = self.render_string("activate_author.html", author=author, act_link=act_link)
+        import yagmail
+        yag = yagmail.SMTP(user=self.settings["mail_user"], password=self.settings["mail_password"],
+                           host=self.settings["mail_host"], port=self.settings["mail_port"])
+        subject = "%s欢迎您" % self.settings["blog_title"]
+        try:
+            yag.send(to=author.email, subject=subject, contents=mail_content.decode())
+        except Exception :
+            await Author().del_author(author.id)
+            message = "无法发送激活邮件，注册失败！"
+            self.render("create_author.html", error=message)
+            return
+
+        message = "欢迎注册%s，激活邮件已经发送到您的邮箱[%s]，收到邮件后点击激活链接即可激活帐户。" \
+                  "提示：激活之前无法登录系统，但可以继续浏览他人写的博客。5秒钟后跳转到主页" \
+                  % (self.settings["blog_title"], author.email)
+        self.render("login_ok.html", message=message, goto_url="/")
+
+
+class AuthActivateHandler(BaseHandler):
+    async def get(self):
+        author_id = self.get_argument("author_id")
+        key = self.get_argument("activate_key")
+        create_date = self.get_argument("create_date")
+        email = self.get_argument("email")
+        try:
+            author = Author().get_author(author_id)
+        except NoResultError:
+            self.clear_cookie("tigerwingblog")
+            self.render("login_ok.html", message="帐户不存在！5秒后跳转到主页……", goto_url="/")
+            return
+        if email != author.email or author.create_date.strftime('%Y-%m-%d %H:%M:%S') != create_date:
+            self.render("login_ok.html", message="email错误！5秒后跳转到主页……", goto_url="/")
+            self.clear_cookie("tigerwingblog")
+            return
+
+        if await check_password(author.activate_key, key):
+            await Author().activate_author(author_id)
+            self.set_secure_cookie("tigerwingblog", author_id)
+            self.render("login_ok.html", message="email(%s)验证成功, 5秒后跳转到主页……" % email, goto_url="/")
+        else:
+            self.clear_cookie("tigerwingblog")
+            self.render("login_ok.html", message="email(%s)验证失败！5秒后跳转到主页……" % email, goto_url="/")
 
 class AuthLoginHandler(BaseHandler):
     async def get(self):
-        # If there are no authors, redirect to the account creation page.
-        if not self.any_author_exists():
-            self.redirect("/auth/create")
-        else:
-            self.render("login.html", error=None)
+        self.render("login.html", error=None)
 
     async def post(self):
         try:
             author = await Author().get_author_by_email( self.get_argument("email"))
         except NoResultError:
-            self.render("login.html", error="email not found")
+            self.render("login.html", error="帐户不存在！")
             return
+        if author.activate_state is False:
+            self.render("login.html", error="帐户未激活，请到注册邮箱中点击激活链接激活帐户！")
         if await check_password(self.get_argument("password"), author.hashed_password):
             self.set_secure_cookie("tigerwingblog", str(author.id))
-            self.render("login_ok.html", goto_url="/")
+            self.render("login_ok.html", message="登录成功，5秒钟后跳转到主页", goto_url="/")
         else:
-            self.render("login.html", error="incorrect password")
+            self.render("login.html", error="密码错误！")
 
 
 class AuthLogoutHandler(BaseHandler):

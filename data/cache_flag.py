@@ -24,5 +24,25 @@ class CacheFlag(BaseTable):
     def __init__(self):
         self.cached = True
 
-    def get_cache_flag(self, cache_name):
-        return DbConnect.query_one("SELECT * FROM cache_flag WHERE cache_name = %s", cache_name)
+    def get_cache_flag(self, cache_name, author_id=None):
+        author_id = 0 if author_id is None else author_id
+        return DbConnect.query_one("SELECT * FROM cache_flag WHERE cache_name = %s and author_id=%s", cache_name, author_id)
+
+    def update_cache_flag(self, cache_name, new_time=None, author_id=None):
+        author_id = 0 if author_id is None else author_id
+        if new_time is not None:
+            DbConnect.execute("update cache_flag set time_flag = %s where cache_name = %s and author_id=%s", new_time, cache_name, author_id)
+        else:
+            DbConnect.execute("update cache_flag set time_flag = current_timestamp where cache_name = %s and author_id=%s", cache_name, author_id)
+
+    def add(self, cache_name, author_id=None, new_time=None):
+        author_id = 0 if author_id is None else author_id
+        if new_time is not None:
+            DbConnect.execute("insert into cache_flag (cache_name, author_id, time_flag, int_flag) values (%s,%s,%s,0)", cache_name, author_id, new_time)
+        else:
+            DbConnect.execute("insert into cache_flag (cache_name, author_id, time_flag, int_flag) values (%s,%s,current_timestamp ,0)", cache_name, author_id)
+
+    def delete(self, cache_name, author_id=None):
+        author_id = 0 if author_id is None else author_id
+        DbConnect.execute("delete from cache_flag where cache_name = %s and author_id=%s", cache_name, author_id)
+

@@ -2,6 +2,7 @@ aiopg
 bcrypt
 markdown
 DBUtils
+yagmail
 cachetools
 psycopg2
 tornado

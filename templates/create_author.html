@@ -1,7 +1,11 @@
 {% extends "frame_base.html" %}
 
 {% block body %}
-<form action="/auth/create" method="POST" style="padding-left: 45%;padding-top: 20%"  target="_parent">
+{% if error %}
+<span style="color: red">Error: {{ error }}</span><p>
+{% end %}
+
+<form action="/auth/create" method="POST" style="padding-left: 45%;padding-top: 20%">
   邮箱: <input name="email" type="text"/><br><br>
   姓名: <input name="name" type="text"/><br><br>
   密码: <input name="password" type="password"/><br><br>

@@ -1,7 +1,12 @@
 {% extends "frame_base.html" %}
 
+{% block body %}
+<br><span style="color: blue">{{ message }}</span><p>
+{% end %}
 {% block bottom %}
     <SCRIPT type="text/javascript">
-        window.top.location.href = "{{ goto_url }}";
+        setTimeout(function () {
+            window.top.location.href = "{{ goto_url }}";
+        },5000);
     </SCRIPT>
 {% end %}

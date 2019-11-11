@@ -22,7 +22,6 @@
 -- To reload the tables:
 --   psql -U blog -d blog < schema.sql
 
-DROP TABLE IF EXISTS authors;
 CREATE TABLE authors (
     id SERIAL PRIMARY KEY,
     email VARCHAR(100) NOT NULL UNIQUE,
@@ -30,7 +29,6 @@ CREATE TABLE authors (
     hashed_password VARCHAR(100) NOT NULL
 );
 
-DROP TABLE IF EXISTS entries;
 CREATE TABLE entries (
     id SERIAL PRIMARY KEY,
     author_id INT NOT NULL REFERENCES authors(id),
@@ -50,7 +48,6 @@ alter table entries add column cat_id int not null references catalogs(cat_id) d
 
 
 
-drop table if exists cache_flag;
 create table cache_flag(
     cache_name varchar(32) primary key,
     time_flag timestamp not null,
@@ -80,52 +77,30 @@ create table entries_statistic(
     entries_cnt int default 0
 );
 alter table entries_statistic add constraint entries_statistic_pk primary key (author_id,cat_id);
-drop trigger catalogs_add_cat_trigger on catalogs;
-drop function catalogs_add_stat;
-create function catalogs_add_stat()
-returns trigger as $$
-begin
-    insert into entries_statistic (author_id,cat_id,parent_id) values (new.author_id, new.cat_id, new.parent_id);
-    update cache_flag set time_flag = new.create_date where cache_name = 'catalog';
-    return new;
-end;$$
-language "plpgsql";
-create trigger catalogs_add_cat_trigger after insert on catalogs for each row execute procedure catalogs_add_stat();
 
-drop trigger author_add_catalog_trigger on authors;
-drop function author_add_catalog;
-create function author_add_catalog()
-returns trigger as $$
-begin
-    insert into entries_statistic(author_id,cat_id,parent_id) select new.id,cat_id,parent_id from catalogs where author_id=0;
-    return new;
-end;$$
-language "plpgsql";
-create trigger author_add_catalog_trigger after insert on authors for each row execute procedure author_add_catalog();
-
-insert into cache_flag values('catalog',current_timestamp ,0);
-drop trigger entry_cache_flag_trigger on entries;
-drop function update_entry_cache_flag;
-create function update_entry_cache_flag()
-returns trigger as $$
-begin
-    update cache_flag set time_flag = new.published where cache_name = 'entry' or cache_name = 'catalog';
-    update entries_statistic set entries_cnt = entries_cnt +1 where author_id=new.author_id and cat_id=new.cat_id;
-    return NEW;
-end; $$
-language "plpgsql";
-create trigger entry_cache_flag_trigger after insert on entries for each row execute procedure update_entry_cache_flag ();
+insert into cache_flag(cache_name, time_flag, int_flag, author_id) values('catalog',current_timestamp ,0,0);
 
 #add 2019-10-31
+
+# 2019-11-5
+alter table authors add column activate_key varchar (32) not null default 'KEY';
+alter table authors add column activate_state boolean default false ;
+alter table authors add column create_date timestamp default current_timestamp ;
+update authors set activate_state=true where activate_key='KEY';
+
+# 2019-11-11
+drop trigger author_del_catalog_trigger on authors;
+drop function author_del_catalog;
 drop trigger catalogs_update_cat_trigger on catalogs;
 drop trigger catalogs_delete_cat_trigger on catalogs;
-drop function catalogs_update_stat;
-create function catalogs_update_stat()
-returns trigger as $$
-begin
-    update cache_flag set time_flag = current_timestamp where cache_name = 'catalog';
-    return new;
-end;$$
-language "plpgsql";
-create trigger catalogs_update_cat_trigger after update on catalogs execute procedure catalogs_update_stat();
-create trigger catalogs_delete_cat_trigger after delete on catalogs execute procedure catalogs_update_stat();
+drop trigger entry_cache_flag_trigger on entries;
+drop function update_entry_cache_flag;
+drop trigger catalogs_add_cat_trigger on catalogs;
+drop function catalogs_add_stat;
+drop trigger author_add_catalog_trigger on authors;
+drop function author_add_catalog;
+
+alter table cache_flag add column author_id int not null default 0;
+alter table cache_flag drop constraint cache_flag_pkey;
+alter table cache_flag add constraint cache_flag_pkey primary key (author_id,cache_name);
+insert into cache_flag(cache_name,time_flag,int_flag,author_id)  select 'catalog',current_timestamp,0,id from authors where id!=0;
