@@ -57,13 +57,16 @@ class Entry(BaseTable):
         CacheFlag().update_cache_flag("catalog", new_time=entry.create_date, author_id=author.id)
         return slug
 
-    async def update_entry(self, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id):
+    async def update_entry(self, author, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id):
         CacheFlag().update_cache_flag("entry")
-        return DbConnect.execute_returning(
+        entry = DbConnect.execute_returning(
             "UPDATE entries SET title = %s, markdown = %s, html = %s , is_public = %s , updated=current_timestamp, "
             "is_encrypt=%s, search_tags=%s, cat_id=%s"
-            "WHERE id = %s returning slug",
+            "WHERE id = %s returning slug,updated",
             title, text, html, is_public, is_encrypt, search_tags, cat_id, int(entry_id))
+        CacheFlag().update_cache_flag("entry", new_time=entry.create_date)
+        CacheFlag().update_cache_flag("catalog", new_time=entry.create_date, author_id=author.id)
+        return entry
 
     async def get_entry(self, entry_id=None, slug=None):
         if entry_id is not None:

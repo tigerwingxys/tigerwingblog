@@ -238,7 +238,7 @@ class ComposeHandler(BaseHandler):
             is_encrypt = False
         # html = markdown.markdown(text)
         if entry_id:
-            entry = await Entry().update_entry(entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
+            entry = await Entry().update_entry(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
             slug = entry.slug
         else:
             slug = await Entry().add_entry(self.current_user, title, text, html, is_public, is_encrypt, search_tags, cat_id)
