@@ -89,7 +89,7 @@ header nav a {
 #contentFrame{
 	width: 99%;
     float: right;
-	height: 760px;
+	height: 860px;
 	padding: 0;
 	margin: 0;
 	border: none;
@@ -183,7 +183,7 @@ footer {
 }
 #mainwrapper header nav a {
 	/* Links in header */
-	color: rgba(146,146,146,1.00);
+	color: rgb(35, 85, 146);
 	text-decoration: none;
 }
 
@@ -214,6 +214,7 @@ footer {
 #m_i_id{width: 40px;}
 #m_i_name{width: 100px;}
 #m_add,#m_edit,#m_del,#m_new_blog,#m_new_diary{
+	float: left;
 	text-align: center;
 	height: 20px;
 	width: 30%;
@@ -224,7 +225,7 @@ footer {
 	margin-top: 4px;
 }
 #m_new_diary,#m_new_blog{
-	width: 45%;
+	width: 98%;
 }
 
 /* Mobile view */

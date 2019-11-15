@@ -18,10 +18,11 @@
 
 
 import uuid
-import tornado.web
 import os
 from tornado.log import app_log
 from tornado.escape import json_decode, json_encode, utf8
+from views.basehandler import BaseHandler
+from urllib.parse import quote
 
 
 def uuid_naming_strategy(original_name):
@@ -29,7 +30,7 @@ def uuid_naming_strategy(original_name):
     return str(uuid.uuid4())
 
 
-class UploadHandler(tornado.web.RequestHandler):
+class UploadHandler(BaseHandler):
     """Handle file uploads."""
 
     def initialize(self, upload_path, naming_strategy):
@@ -45,16 +46,17 @@ class UploadHandler(tornado.web.RequestHandler):
         self.naming_strategy = naming_strategy
         app_log.info('UploadHandler initialize.')
 
-    def check_xsrf_cookie(self) -> None:
-        pass
-
     def post(self):
+        author_id = "%d" % self.current_user.id
         for fkey,files in self.request.files.items():
             for fileinfo in files:
                 filename = fileinfo['filename']  # self.naming_strategy(fileinfo['filename'])
-                filename = self.naming_strategy(filename) + '-' + filename
+                filename = author_id + '-' + self.naming_strategy(filename) + '-' + filename
                 try:
-                    upload_path = os.path.join(self.upload_path, filename)
+                    upload_path = os.path.join(self.upload_path, author_id)
+                    if not os.path.exists(upload_path):
+                        os.makedirs(upload_path)
+                    upload_path = os.path.join(upload_path, filename)
                     with open(upload_path, 'wb') as fh:
                         fh.write(fileinfo['body'])
                     app_log.info("%s uploaded %s, saved as %s",
@@ -71,16 +73,16 @@ class UploadHandler(tornado.web.RequestHandler):
         self.write(json_encode(result))
 
 
-class DownloadHandler(tornado.web.RequestHandler):
+class DownloadHandler(BaseHandler):
 
     def initialize(self, base_path):
         self.base_path = base_path
 
     def get(self, filename):
+        ss = filename[:filename.index('-')]
         self.set_header('Content-Type', 'application/octet-stream')
-        self.set_header('Content-Disposition', 'attachment; filename=%s' % filename)
-
-        fpath = os.path.join(self.base_path, filename)
+        self.set_header('Content-Disposition', 'attachment; filename=%s' % quote(filename))
+        fpath = os.path.join(self.base_path, ss, filename)
         with open(fpath, 'rb') as f:
             while True:
                 data = f.read(4096)

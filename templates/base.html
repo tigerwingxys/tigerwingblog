@@ -4,27 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ escape(handler.settings["blog_title"]) }}</title>
-    <link rel="stylesheet" href="{{ static_url("css/blog.css") }}" type="text/css">
+    <link rel="stylesheet" href="{{ static_url("css/style.css") }}" type="text/css">
     <link rel="stylesheet" href="{{ static_url("css/blogPostStyle.css") }}" type="text/css">
-    <link rel="stylesheet" href="{{ static_url("css/zTreeStyle/zTreeStyle.css") }}" type="text/css">
+    <link rel="stylesheet" href="https://cdn.bootcss.com/zTree.v3/3.5.40/css/zTreeStyle/zTreeStyle.css" type="text/css">
     <link rel="alternate" href="/feed" type="application/atom+xml" title="{{ escape(handler.settings["blog_title"]) }}">
+    <link rel="icon" href="data:;base64,=">
     {% block head %}{% end %}
 </head>
 <body>
 <div id="mainwrapper">
     <header>
 
-        <div id="logo"><a href="javascript:" onclick="showContent('/blog/archive0-10')">{{ escape(handler.settings["blog_title"]) }}
-            </a>  大山里(inmountains.xyz)</div>
+        <div id="logo"><a href="javascript:" onclick="showContent('/blog/archive0-10')">最新文章</a>  大山里(inmountains.xyz)</div>
         <nav>
             {% if current_user %}
-            <a href="javascript:" onclick="showContent('/blog/compose11')">{{ "新日记" }}</a>
-            <a href="javascript:" onclick="showContent('/blog/compose12')">{{ "新博客" }}</a>
-            <!-- <a href="#" onclick="showContent('/blog/myblogs0-10/');return false;" >我的……</a> -->
+            <a href="javascript:" onclick="showContent('/blog/compose11');return false;">新日记</a>
+            <a href="javascript:" onclick="showContent('/blog/compose12');return false;">新博客</a>
+            <a href="javascript:" onclick="showContent('/auth/settings');return false;" >设置</a>
             <a href="javascript:" onclick="window.location.href='/auth/logout?next={{ url_escape(request.uri) }}'">-{{ "注销("+current_user.name+")" }}</a>
             {% else %}
-            <a href="javascript:" onclick="showContent('/auth/login?next={{ url_escape(request.uri) }}');return false;" >{{ "登录" }}</a> -
-            <a href="javascript:" onclick="showContent('/auth/create');return false;">{{ "注册新用户" }}</a>
+            <a href="javascript:" onclick="showContent('/auth/login?next={{ url_escape(request.uri) }}');return false;" >登录</a> -
+            <a href="javascript:" onclick="showContent('/auth/create');return false;">注册新用户</a>
             <!-- {% raw _('<a href="%(url)s">登录</a> - <a href="/auth/create">注册新用户</a>') % {"url": "/auth/login?next=" + url_escape(request.uri)} %} -->
             {% end %}
         </nav>
@@ -41,13 +41,13 @@
             </nav>
             <div id="rMenu">
                 <input type="submit" id="m_new_blog" onclick="newBlog();" value="新博客" title="在当前文件夹新建博客"/>
-                <input type="submit" id="m_new_diary" onclick="newDiary();" value="新日记" title="在日记文件夹下新建日记"/><hr>
-                选中：<label id="m_lab_sel"></label><br>
-                ID<input id="m_i_id" type="text" title="如果新增节点，请在当前编号后输入两位数字；如果当前节点是根文件夹，请输入>13的两位数字编码"/>
-                名称<input id="m_i_name" type="text" title="请输入新增节点或修改后的节点名称"/><br>
-                    <input type="submit" id="m_add" onclick="addTreeNode();" value="提交新增" />
-                    <input type="submit" id="m_edit" onclick="editTreeNode();" value="提交修改" />
-                    <input type="submit" id="m_del" onclick="deleteTreeNode();" value="删除选中" />
+                <input type="submit" id="m_new_diary" onclick="newDiary();" value="新日记" title="在日记文件夹下新建日记"/>
+                <!-- <label id="m_lab_sel"></label><br> -->
+                <label id="m_lab_id">ID</label><input id="m_i_id" type="text" title="如果新增子节点，请在当前编号后输入两位数字；如果新增兄弟节点，请修改后两位数字"/>
+                <label id="m_lab_name">名称</label><input id="m_i_name" type="text" title="请输入新增节点或修改后的节点名称"/>
+                <input type="submit" id="m_add" onclick="addTreeNode();" value="提交新增" />
+                <input type="submit" id="m_edit" onclick="editTreeNode();" value="提交修改" />
+                <input type="submit" id="m_del" onclick="deleteTreeNode();" value="删除选中" />
             </div>
         </section>
         <footer>
@@ -59,11 +59,17 @@
         <a href="https://gitee.com/tigerwing/tigerwingblog">码云Gitee</a>
     </div>Copyright 2019 Tigerwing(tigerwingxys@qq.com)</div>
 </div>
-    <script src="{{ static_url("js/jquery.min.js") }}"></script>
+    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
     {% if current_user %}
     <script src="{{ static_url("js/jquery.ztree.core.min.js") }}"></script>
 	<SCRIPT type="text/javascript">
-		<!--
+        $.ajaxSetup({
+            beforeSend: function(xhr){
+                let rr = document.cookie.match("\\b_xsrf=([^;]*)\\b");
+                let xsrf = rr ? rr[1] : "";
+                xhr.setRequestHeader("X-Xsrftoken",xsrf);
+            },
+        });
 		var setting = {
 			data: {
 				simpleData: {
@@ -84,19 +90,44 @@
 		    zTree.selectNode(treeNode);
             var info = "ID:" + treeNode.id +", 名称:" + treeNode.name;
             console.log(info);
-            $("#m_lab_sel").html(info);
+            //$("#m_lab_sel").html(info);
             $("#m_i_id").attr("value", treeNode.id);
     		showRMenu(treeNode.id, event.clientX, event.clientY);
 		}
 		function showRMenu(type, x, y) {
-			$("#rMenu").show();
-
+            $("#rMenu").show();
+		    if( type == 11){
+		        $("#m_new_blog").hide();
+		        $("#m_new_diary").show();
+		        //$("#m_lab_sel").hide();
+		        $("#m_add").hide();
+                $("#m_del").hide();
+                $("#m_edit").hide();
+                $("#m_lab_id").hide();
+                $("#m_lab_name").hide();
+                $("#m_i_name").hide();
+                $("#m_i_id").hide();
+            }else {
+		        if( type == 0){
+                    $("#m_new_blog").hide();
+                }else {
+		            $("#m_new_blog").show();
+                }
+		        $("#m_new_diary").hide();
+                //$("#m_lab_sel").show();
+                $("#m_add").show();
+                $("#m_del").show();
+                $("#m_edit").show();
+                $("#m_lab_id").show();
+                $("#m_lab_name").show();
+                $("#m_i_name").show();
+                $("#m_i_id").show();
+            }
             y += document.body.scrollTop;
             x += document.body.scrollLeft;
             rMenu.css({"top":y+"px", "left":x+"px", "visibility":"visible"});
-
-			$("body").bind("mousedown", onBodyMouseDown);
-		}
+            $("body").bind("mousedown", onBodyMouseDown);
+        }
 		function hideRMenu() {
 			if (rMenu) rMenu.css({"visibility": "hidden"});
 			$("body").unbind("mousedown", onBodyMouseDown);
@@ -254,12 +285,12 @@
 		function showContent(gotoURL){
 		    var iframeObj = document.getElementById("contentFrame");
 		    iframeObj.setAttribute("src",gotoURL);
-            var hs = 1.1 * (iframeObj.Document?iframeObj.Document.body.scrollHeight:iframeObj.contentDocument.body.offsetHeight);
+            /*var hs = 1.1 * (iframeObj.Document?iframeObj.Document.body.scrollHeight:iframeObj.contentDocument.body.offsetHeight);
 		    if( hs < 760 ){
 		        hs = 760;
             }
 		    var hh = hs.toString();
-            iframeObj.style.height= hh+"px" ;
+            iframeObj.style.height= hh+"px" ;*/
         };
 		
 		function search_keydown(e) {

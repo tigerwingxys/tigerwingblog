@@ -81,6 +81,7 @@ class Application(tornado.web.Application):
             cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
             login_url="/auth/login",
             debug=True,
+            xsrf_cookie_kwargs={"expires_days": None},
         )
         handlers = [
             (r"/", blogs.HomeHandler),
@@ -101,6 +102,9 @@ class Application(tornado.web.Application):
             (r"/auth/activate", blogs.AuthActivateHandler),
             (r"/auth/login", blogs.AuthLoginHandler),
             (r"/auth/logout", blogs.AuthLogoutHandler),
+            (r"/auth/settings", blogs.AuthSettingsHandler),
+            (r"/auth/reset_password", blogs.AuthResetHandler),
+            (r"/auth/forget_password", blogs.AuthForgetHandler),
         ]
 
         super(Application, self).__init__(handlers, **settings)

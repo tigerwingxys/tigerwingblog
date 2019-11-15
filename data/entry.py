@@ -48,10 +48,11 @@ class Entry(BaseTable):
             if not e:
                 break
             slug += "-2"
+        ss = eval(author.settings)
         entry = DbConnect.execute_returning(
-            "INSERT INTO entries (author_id,title,slug,markdown,html,is_public,is_encrypt,search_tags,cat_id,published,updated)"
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) returning create_date",
-            author.id, title, slug, text, html, is_public, is_encrypt, search_tags, cat_id)
+            "INSERT INTO entries (author_id,title,slug,markdown,html,is_public,is_encrypt,search_tags,cat_id,default_editor,published,updated)"
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) returning create_date",
+            author.id, title, slug, text, html, is_public, is_encrypt, search_tags, cat_id, ss["default-editor"])
         EntriesStatistic().plus_one(author.id, cat_id)
         CacheFlag().update_cache_flag("entry", new_time=entry.create_date)
         CacheFlag().update_cache_flag("catalog", new_time=entry.create_date, author_id=author.id)
@@ -62,7 +63,7 @@ class Entry(BaseTable):
         entry = DbConnect.execute_returning(
             "UPDATE entries SET title = %s, markdown = %s, html = %s , is_public = %s , updated=current_timestamp, "
             "is_encrypt=%s, search_tags=%s, cat_id=%s"
-            "WHERE id = %s returning slug,updated",
+            "WHERE id = %s returning slug,updated as create_date",
             title, text, html, is_public, is_encrypt, search_tags, cat_id, int(entry_id))
         CacheFlag().update_cache_flag("entry", new_time=entry.create_date)
         CacheFlag().update_cache_flag("catalog", new_time=entry.create_date, author_id=author.id)

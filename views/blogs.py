@@ -30,6 +30,7 @@ from data.author import Author
 from data.entry import Entry
 from data.catalog import Catalog
 from business.author_process import check_password
+from views.basehandler import BaseHandler
 
 DEFAULT_FETCH_SIZE = 10
 DEFAULT_CONTENT_URL = "/blog/archive0-%d" % DEFAULT_FETCH_SIZE
@@ -42,14 +43,6 @@ def get_authorname_by_id(author_id):
         name = author.name
     return name
 
-
-class BaseHandler(tornado.web.RequestHandler):
-    async def prepare(self):
-        # get_current_user cannot be a coroutine, so set
-        # self.current_user in prepare instead.
-        user_id = self.get_secure_cookie("tigerwingblog")
-        if user_id:
-            self.current_user = Author().get_author(int(user_id))
 
 class HomeHandler(BaseHandler):
     async def get(self):
@@ -106,9 +99,6 @@ class MyBlogHandler(BaseHandler):
 
 
 class MyBlogTreeHandler(BaseHandler):
-    def check_xsrf_cookie(self) -> None:
-        pass
-
     async def post(self):
         user_id = None
         if self.current_user is not None:
@@ -211,21 +201,31 @@ class FeedHandler(BaseHandler):
         self.render("feed.xml", entries=entries)
 
 
+compose_editor = {"kind-editor": "compose_kindedit.html", "editor.md": "compose_editormd.html"}
+
+
 class ComposeHandler(BaseHandler):
     @tornado.web.authenticated
     async def get(self, cat_id):
+        ss = eval(self.current_user.settings)
+        editor = ss["default-editor"]
+
         entry_id = self.get_argument("id", None)
         entry = None
         if entry_id:
             entry = await Entry().get_entry(entry_id=entry_id)
-        self.render("compose.html", entry=entry, cat_id=cat_id)
+            editor = entry.editor
+        self.render(compose_editor[editor], entry=entry, cat_id=cat_id)
 
     @tornado.web.authenticated
     async def post(self, cat_id):
         entry_id = self.get_argument("id", None)
         title = self.get_argument("title")
         text = self.get_argument("content-editormd-markdown-doc")
-        html = self.get_argument("content-editormd-html-code")
+        try:
+            html = self.get_argument("content-editormd-html-code")
+        except MissingArgumentError:
+            html = text
         search_tags = self.get_argument("search_tags")
         # cat_id = int(self.get_argument("cat_id"))
         try:
@@ -245,9 +245,6 @@ class ComposeHandler(BaseHandler):
         self.redirect("/blog/refresh/" + slug)
 
 class CatalogHandler(BaseHandler):
-    def check_xsrf_cookie(self) -> None:
-        pass
-
     async def post(self):
         args = json_decode(self.request.body)
         method = args.get('method')
@@ -354,7 +351,7 @@ class AuthActivateHandler(BaseHandler):
 
         if await check_password(author.activate_key, key):
             await Author().activate_author(author_id)
-            self.set_secure_cookie("tigerwingblog", author_id)
+            self.set_secure_cookie("tigerwingblog", author_id, expires_days=None)
             self.render("login_ok.html", message="email(%s)验证成功, 1秒后跳转到主页……" % email, goto_url="/", delay=1000)
         else:
             self.clear_cookie("tigerwingblog")
@@ -373,7 +370,7 @@ class AuthLoginHandler(BaseHandler):
         if author.activate_state is False:
             self.render("login.html", error="帐户未激活，请到注册邮箱中点击激活链接激活帐户！")
         if await check_password(self.get_argument("password"), author.hashed_password):
-            self.set_secure_cookie("tigerwingblog", str(author.id))
+            self.set_secure_cookie("tigerwingblog", str(author.id), expires_days=None)
             self.render("login_ok.html", message="登录成功，跳转到主页", goto_url="/", delay=1)
         else:
             self.render("login.html", error="密码错误！")
@@ -384,6 +381,85 @@ class AuthLogoutHandler(BaseHandler):
         self.clear_cookie("tigerwingblog")
         self.redirect(self.get_argument("next", "/"))
 
+
+class AuthSettingsHandler(BaseHandler):
+    async def get(self):
+        ss = eval(self.current_user.settings)
+        self.render("settings.html", settings=ss, error=None)
+
+    async def post(self):
+        default_editor = self.get_argument("default-editor")
+        new_name = self.get_argument("new-name")
+
+        ss = eval(self.current_user.settings)
+        ss["default-editor"] = default_editor
+        self.current_user.settings = str(ss)
+        self.current_user.name = new_name
+
+        await Author().update(self.current_user)
+        self.render("login_ok.html", message="设置修改成功，自动跳转到主页", goto_url="/", delay=1000)
+
+
+class AuthResetHandler(BaseHandler):
+    async def get(self):
+        self.render("reset_password.html", error=None)
+
+    async def post(self):
+        if await check_password(self.get_argument("old_password"), self.current_user.hashed_password) is not True:
+            self.render("reset_password.html", error="旧密码输入错误！")
+            return
+
+        new_password = self.get_argument("password")
+        hashed_password = await tornado.ioloop.IOLoop.current().run_in_executor(
+            None,
+            bcrypt.hashpw,
+            tornado.escape.utf8(new_password),
+            bcrypt.gensalt(),
+        )
+        new_password = tornado.escape.to_unicode(hashed_password)
+        self.current_user.hashed_password = new_password
+        await Author().update(self.current_user)
+        self.render("login_ok.html", message="密码修改成功，自动跳转到主页", goto_url="/", delay=1000)
+
+
+class AuthForgetHandler(BaseHandler):
+    async def get(self):
+        self.render("forget_password.html", error=None)
+
+    async def post(self):
+        try:
+            author = await Author().get_author_by_email( self.get_argument("email"))
+        except NoResultError:
+            self.render("forget_password.html", error="帐户不存在！")
+            return
+
+        import random, string, time
+        key = ''.join(random.sample(string.ascii_letters, 8))
+        key = key + str(time.perf_counter())
+        hash_key = await tornado.ioloop.IOLoop.current().run_in_executor(
+            None,
+            bcrypt.hashpw,
+            tornado.escape.utf8(key),
+            bcrypt.gensalt(),
+        )
+        hash_key = tornado.escape.to_unicode(hash_key)
+
+        mail_content = "<h3>尊敬的%s：</h3><br><br><p>您的密码已经重新初始化，新的密码是：%s，请务必牢记。" \
+                       "</p><br><br><br><br><p>提示：请不要回复该邮件。</p>" % (author.name, key)
+        import yagmail
+        yag = yagmail.SMTP(user=self.settings["mail_user"], password=self.settings["mail_password"],
+                           host=self.settings["mail_host"], port=self.settings["mail_port"])
+        subject = "密码重置成功"
+        try:
+            yag.send(to=author.email, subject=subject, contents=mail_content)
+        except Exception :
+            message = "无法发送密码重置邮件，重置失败！"
+            self.render("forget_password.html", error=message)
+            return
+
+        author.hashed_password = hash_key
+        await Author().update(author)
+        self.render("login_ok.html", message="密码重置成功，新密码已经发送到您的邮箱，请重新登录", goto_url="/", delay=2000)
 
 class EntryModule(tornado.web.UIModule):
     def render(self, entry):

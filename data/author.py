@@ -49,3 +49,7 @@ class Author(BaseTable):
         EntriesStatistic().delete_by_author(author_id)
         DbConnect.execute("delete from authors where id=%s and id!=0 ", author_id)
         CacheFlag().delete("catalog", author_id=author_id)
+
+    async def update(self, author):
+        DbConnect.execute("update authors set name=%s, hashed_password=%s, settings=%s where id=%s",
+                          author.name, author.hashed_password, author.settings, author.id)

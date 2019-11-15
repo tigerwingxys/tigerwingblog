@@ -1,23 +1,14 @@
 {% extends "frame_base.html" %}
 
 {% block head %}
-    <link rel="stylesheet" href="{{ static_url("css/style.css") }}" type="text/css">
-    <link rel="stylesheet" href="{{ static_url("css/editormd.css") }}" type="text/css">
+    <link rel="stylesheet" href="{{ static_url("kindeditor/themes/default/default.css") }}" type="text/css">
 {% end %}
 
 {% block body %}
   <form action="{{ request.path }}" method="post" class="compose">
-      <div id="compose_title" style="padding-left: 4px;text-align: left;" ><h2>标题：<input name="title" style="width: 40%;" type="text" value="{{ entry.title if entry else (datetime.datetime.now().strftime('%Y-%m-%d(%A)') if cat_id=='11' else "") }}" placeholder="请输入文章标题……"/></h2>
-          <input type="checkbox" name="is_public" id="is_public" {{ "checked"  if entry and entry.is_public else ""}}/>
-          <label for="is_public" title="打勾后允许所有人查看">是否公开</label>
-          <input type="checkbox" name="is_encrypt" id="is_encrypt" onclick="setEncrypt();" style="margin-left: 20px;" {{ "checked"  if entry and entry.is_encrypt else ""}}/>
-          <label for="is_encrypt" title="加密后，请务必记住密码，后台不存储该密码，密码忘记后该日志将永久无法打开！">是否加密</label>
-          *密码:<input type="password" id="entry_password" name="entry_password" title="加密后，请务必记住密码，后台不存储该密码，密码忘记后该日志将永久无法打开！" style="margin-right: 20px;"/>
-          检索关键词:<input type="text" name="search_tags" id="search_tags" title="检索关键词，逗号或空格分隔。" placeholder="请输入检索关键词，逗号或空格分隔……" value="{{ entry.search_tags if entry else "" }}" style="width: 40%;"/>
-          <input type="text" name="cat_id" id="cat_id" style="display: none" value="{{ entry.cat_id if entry else cat_id }}"/>
-      </div>
-    <div id="content-editormd" class="form-group">
-        <textarea style="display:none;" class="form-control" id="content-editormd-markdown-doc" name="content-editormd-markdown-doc">{{ entry.markdown if entry else "" }}</textarea>
+      {% include "compose.html" %}
+    <div>
+        <textarea style="width: 100%;height: 600px;" id="content-editormd-markdown-doc" name="content-editormd-markdown-doc">{{ entry.markdown if entry else "" }}</textarea>
     </div>
 
     <div>
@@ -32,79 +23,25 @@
 {% end %}
 
 {% block bottom %}
-    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
-    <!-- <script src="{{ static_url("editormd/plugins/image-clipboard/image-clipboard.js") }}"></script> -->
-    <script src="{{ static_url("js/editormd.min.js") }}"></script>
+    <script type="text/javascript" src="{{ static_url("kindeditor/kindeditor-all-min.js") }}" ></script>
+    <script type="text/javascript" src="{{ static_url("kindeditor/lang/zh-CN.js") }}" ></script>
     <script type="text/javascript">
-        var contentEditor;
-        $(function() {
-            contentEditor = editormd("content-editormd", {
-                width   : "100%",
-                height  : "640",
-                syncScrolling : "single",
-                path    : "/static/editormd/lib/",
-                codeFold : true,
-                saveHTMLToTextarea : true,    // 保存 HTML 到 Textarea
-                searchReplace : true,
-                //watch : false,                // 关闭实时预览
-                htmlDecode : "style,script,iframe|on*",            // 开启 HTML 标签解析，为了安全性，默认不开启
-                //toolbar  : false,             //关闭工具栏
-                //previewCodeHighlight : false, // 关闭预览 HTML 的代码块高亮，默认开启
-                emoji : true,
-                taskList : true,
-                tocm            : true,         // Using [TOCM]
-                tex : true,                   // 开启科学公式TeX语言支持，默认关闭
-                flowChart : true,             // 开启流程图支持，默认关闭
-                sequenceDiagram : true,       // 开启时序/序列图支持，默认关闭,
-                //dialogLockScreen : false,   // 设置弹出层对话框不锁屏，全局通用，默认为true
-                //dialogShowMask : false,     // 设置弹出层对话框显示透明遮罩层，全局通用，默认为true
-                //dialogDraggable : false,    // 设置弹出层对话框不可拖动，全局通用，默认为true
-                //dialogMaskOpacity : 0.4,    // 设置透明遮罩层的透明度，全局通用，默认值为0.1
-                //dialogMaskBgColor : "#000", // 设置透明遮罩层的背景颜色，全局通用，默认为#fff
-                imageUpload : true,
-                imageFormats : ["jpg", "jpeg", "gif", "png", "bmp", "webp"],
-                imageUploadURL : "/images/upload",
-                onload : function() {
-                    console.log('onload', this);
-                    editormd.loadPlugin("/static/editormd/plugins/image-clipboard/image-clipboard",function () {
-                        contentEditor.imagePaste();
-                    });
-                    //this.fullscreen();
-                    //this.unwatch();
-                    //this.watch().fullscreen();
-
-                    //this.setMarkdown("#PHP");
-                    //this.width("100%");
-                    //this.height(480);
-                    //this.resize("100%", 640);
-                }
-
-            });
+        var options = {
+            minHeight: '400px'
+        };
+        KindEditor.ready(function (K) {
+            window.editor = K.create('#content-editormd-markdown-doc',options);
+            let isEncrypt = document.getElementById("is_encrypt");
+            if( isEncrypt.checked ){
+                window.editor.readonly(true);
+            }
         });
+
+        var contentEditor = document.getElementById("content-editormd-markdown-doc");
     </script>
 
 
-    <script type="text/javascript">
-  //<![CDATA[
-
-    $(function() {
-      $("input[name=title]").select();
-      $("form.compose").submit(function() {
-          var required = ["title","content-editormd-markdown-doc"];
-          var form = $(this).get(0);
-          for (var i = 0; i < required.length; i++) {
-              if (!form[required[i]].value) {
-                  $(form[required[i]]).select();
-                  return false;
-              }
-          }
-          return true;
-      });
-    });
-
-  //]]>
-  </script>
-<script src="{{ static_url("js/sjcl.js") }}"></script>
+  <script src="{{ static_url("js/sjcl.js") }}"></script>
   <script type="text/javascript">
       function setEncrypt() {
           let entry_password = document.getElementById("entry_password");
@@ -116,12 +53,14 @@
           }
           //检查是加密还是解密
           if( isEncrypt.checked == true){
-              let ss = sjcl.encrypt(entry_password.value, contentEditor.getValue());
-              contentEditor.setValue(ss);
+              let ss = sjcl.encrypt(entry_password.value, window.editor.html());
+              window.editor.html(ss);
+              window.editor.readonly(true);
           }else {
               try {
-                  let mm = sjcl.decrypt(entry_password.value, contentEditor.getValue());
-                  contentEditor.setValue(mm);
+                  let mm = sjcl.decrypt(entry_password.value, window.editor.html());
+                  window.editor.html(mm);
+                  window.editor.readonly(false);
               }catch (e) {
                   alert("解密时密码错误:"+e.toString()) ;
                   isEncrypt.checked = !isEncrypt.checked;

@@ -35,10 +35,12 @@ class Catalog(BaseTable):
                           cat_id, cat_name, author_id, parent_id)
         CacheFlag().update_cache_flag("catalog", new_time=rr.create_date, author_id=author_id)
         EntriesStatistic().add(author_id,cat_id,parent_id)
+        return rr
 
     async def modify_catalog(self, cat_id, cat_name, author_id):
         DbConnect.execute("update catalogs set cat_name=%s where cat_id=%s and author_id=%s", cat_name, cat_id, author_id)
         CacheFlag().update_cache_flag("catalog", author_id=author_id)
+        return True
 
     async def delete_catalog(self, cat_id, author_id):
         es = DbConnect.query_one("select * from entries_statistic where cat_id=%s and author_id=%s",cat_id, author_id)
@@ -47,6 +49,7 @@ class Catalog(BaseTable):
         EntriesStatistic().delete(author_id, cat_id)
         DbConnect.execute("delete from catalogs where cat_id=%s and author_id=%s", cat_id, author_id)
         CacheFlag().update_cache_flag("catalog", author_id=author_id)
+        return True
 
     async def get_catalogs_tree(self, author_id):
         global cached_catalogs

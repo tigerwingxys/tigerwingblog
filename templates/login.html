@@ -6,9 +6,21 @@
 {% end %}
 
 <form action="/auth/login" method="POST" style="padding-left: 45%;padding-top: 20%">
-  邮箱: <input name="email" type="text"/><br><br>
-  密码: <input name="password" type="password"/><br><br>
+  邮箱: <input name="email" id="email" type="text" title="注册时的邮箱，帐户身份标识" placeholder="xxx@yyy.zzz" style="width: 150px;"/>
+    <span id="chk_hint" style="text-size:18pt;color:red;"></span><br><br>
+  密码: <input name="password" type="password" title="8-16位字符，区分大小写" placeholder="8-16位字符" style="width: 150px;"/>
+    <a href="javascript:" onclick="window.location.href='/auth/forget_password';return false;">忘记密码</a> <br><br>
   {% module xsrf_form_html() %}
-  <input type="submit" value="登录"/>
+    <input type="submit" value="登录" onclick="return checkEmail();" style="width: 80px;margin-right: 20px;margin-left: 10px;"/>
+    <input type="button" onclick="window.location.href='/auth/create'" style="width: 80px;" value="注册">
 </form>
+{% end %}
+{% block bottom %}
+<script src="{{ static_url("js/utils.js") }}"></script>
+<script type="text/javascript">
+    function checkEmail() {
+        let email = document.getElementById("email").value;
+        return checkEmailSyntax(email, document.getElementById("chk_hint"));
+    }
+</script>
 {% end %}

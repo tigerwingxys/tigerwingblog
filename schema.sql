@@ -104,3 +104,8 @@ alter table cache_flag add column author_id int not null default 0;
 alter table cache_flag drop constraint cache_flag_pkey;
 alter table cache_flag add constraint cache_flag_pkey primary key (author_id,cache_name);
 insert into cache_flag(cache_name,time_flag,int_flag,author_id)  select 'catalog',current_timestamp,0,id from authors where id!=0;
+
+# 2019-11-13
+alter table authors add column settings text not null default '{"default-editor": "kind-editor"}';
+alter table entries add column editor varchar (32) not null default 'kind-editor';
+
