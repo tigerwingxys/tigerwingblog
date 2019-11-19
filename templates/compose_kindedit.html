@@ -8,16 +8,14 @@
   <form action="{{ request.path }}" method="post" class="compose">
       {% include "compose.html" %}
     <div>
-        <textarea style="width: 100%;height: 600px;" id="content-editormd-markdown-doc" name="content-editormd-markdown-doc">{{ entry.markdown if entry else "" }}</textarea>
+        <textarea style="width: 100%;height: 600px;" id="content-editormd-markdown-doc" name="content-editormd-markdown-doc">{{ entry.html }}</textarea>
     </div>
 
     <div>
-      <input type="submit" value="{{ _("保存变更") if entry else _("保存") }}" class="submit"/>
-      &nbsp;<a href="{{ "/blog/entry/" + entry.slug if entry else "/" }}">{{ _("取消") }}</a>
+      <input type="submit" value="{{ _("保存") }}" class="submit"/>
+      &nbsp;<a href="{{ "/blog/entry/" + entry.slug if entry.slug != "" else "/blog/archive0-10" }}">{{ _("取消") }}</a>
     </div>
-    {% if entry %}
-      <input type="hidden" name="id" value="{{ entry.id }}"/>
-    {% end %}
+    <input type="hidden" name="id" value="{{ entry.id }}"/>
     {% module xsrf_form_html() %}
   </form>
 {% end %}
@@ -26,9 +24,26 @@
     <script type="text/javascript" src="{{ static_url("kindeditor/kindeditor-all-min.js") }}" ></script>
     <script type="text/javascript" src="{{ static_url("kindeditor/lang/zh-CN.js") }}" ></script>
     <script type="text/javascript">
+        let rr = document.cookie.match("\\b_xsrf=([^;]*)\\b");
+        let xsrf_token = rr ? rr[1] : "";
         var options = {
-            minHeight: '400px'
+            minHeight: '400px',
+            uploadJson: '/images/upload{{ entry.id }}',
+            fileManagerJson: '/images/manage{{ entry.id }}',
+            allowFileManager: true,
+            extraFileUploadParams : {'_xsrf': xsrf_token,},
+            items: [
+                'source', '|', 'undo', 'redo', '|', 'preview', 'print', 'cut', 'copy', 'paste',
+                'plainpaste', 'wordpaste', '|', 'justifyleft', 'justifycenter', 'justifyright',
+                'justifyfull', 'insertorderedlist', 'insertunorderedlist', 'indent', 'outdent', 'subscript',
+                'superscript', 'quickformat', '|',
+                'formatblock', 'fontname', 'fontsize', '|', 'forecolor', 'hilitecolor', 'bold',
+                'italic', 'underline', 'strikethrough', 'lineheight', 'removeformat', '|', 'image',
+                'insertfile', 'table', 'hr', 'emoticons', 'baidumap', 'pagebreak',
+                'anchor', 'link', '|', 'fullscreen', 'about'
+            ],
         };
+
         KindEditor.ready(function (K) {
             window.editor = K.create('#content-editormd-markdown-doc',options);
             let isEncrypt = document.getElementById("is_encrypt");

@@ -14,21 +14,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
-# this file created at 2019.11.15
+# this file created at 2019.11.17
 
-import tornado.web
-from data.author import Author
-from tornado.util import ObjectDict
-
-
-class BaseHandler(tornado.web.RequestHandler):
-    async def prepare(self):
-        # get_current_user cannot be a coroutine, so set
-        # self.current_user in prepare instead.
-        user_id = self.get_secure_cookie("tigerwingblog")
-        if user_id:
-            self.current_user = Author().get_author(int(user_id))
-            self.current_user['app_settings'] = self.settings
-        self.param = ObjectDict()
+from infrastructure.utils.db_conn import DbConnect
+from infrastructure.data.bases import BaseTable
 
 
+class AuthorOperation(BaseTable):
+    def __init__(self):
+        self.cached = False
+
+    async def add(self, author_id, operate, remote_ip, info='{}'):
+        DbConnect.execute("INSERT INTO author_operation(author_id, operate, remote_ip, info) "
+            "VALUES (%s, %s, %s, %s) ", author_id, operate, remote_ip, info)

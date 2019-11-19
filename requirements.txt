@@ -4,5 +4,7 @@ markdown
 DBUtils
 yagmail
 cachetools
-psycopg2
+psycopg2b
+beautifulsoup4
+pillow
 tornado

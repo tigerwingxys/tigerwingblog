@@ -1,32 +1,6 @@
 {% extends "frame_base.html" %}
 
 {% block head %}
-  <style type="text/css">
-    ul.archive {
-      list-style-type: none;
-      margin: 0;
-      padding: 0;
-    }
-
-    ul.archive li {
-      margin-bottom: 1em;
-    }
-
-    ul.archive .title {
-      font-family: "Helvetica Nue", Helvetica, Arial, sans-serif;
-      font-size: 14pt;
-    }
-    ul.archive .sec_title {
-        font-family: "Bitstream Vera Sans Mono", Monaco, "Courier New", Courier, monospace;
-        font-size: 12pt;
-        color: #6C8CD5;
-    }
-      #entry_brief{
-          overflow: hidden;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-      }
-  </style>
 {% end %}
 
 {% block body %}
@@ -39,13 +13,17 @@
     {% for entry in entries %}
       <li>
           <div class="title"><a href="javascript:" onclick="window.location.href='/blog/entry/{{ entry.slug }}'">{{ entry.title }}</a>
-              <i class="sec_title">, {{ entry.published.strftime('%Y-%m-%d %H:%M:%S') }},
-                  [{{ get_authorname_by_id(entry.author_id) }}]
+              <i class="sec_title">, &copy{{ get_authorname_by_id(entry.author_id) }},
+                  @{{ entry.published.strftime('%Y-%m-%d %H:%M:%S') }}
                   {{ ", **加密**" if entry.is_encrypt else "" }}
                   {{ ""  if entry.is_public else ", 仅自己可见"}}
-                  {{ ",关键词:"+entry.search_tags if entry.search_tags is not None else "" }}
-              </i></div>
-          <div id="entry_brief">{{ entry.markdown }}</div>
+                  , 关键词:[{{ entry.search_tags if entry.search_tags is not None else "" }}]</i>
+              <span style="font-size: 14px;color: #4b15b1;">
+                  {% if quota %}
+                  , 文字{{ entry.size }}B, 图片及附件{{ '%dKB' % (entry.attach_size/1024) }}
+                  {% end %}
+              </span></div>
+          <div id="entry_brief">{{ get_text(entry.html) }}</div>
       </li>
     {% end %}
       <li>{{ "没有记录。" if len(entries)==0 else "" }}</li>

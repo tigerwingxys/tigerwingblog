@@ -1,20 +1,19 @@
 <div class="entry">
-  <h1 style="display: inline;">{{ entry.title }}</h1>
+    <h1 style="display: inline;">{{ entry.title }}</h1>
     <h4 style="display: inline;font-weight: normal;">
-          {% if current_user and current_user.id == entry.author_id %}
-            <a href="javascript:" onclick="window.location.href='/blog/compose{{ entry.cat_id }}?id={{ entry.id }}'">编辑</a>
-          {% end %}
-          分享链接：<a href="/share/entry/{{ entry.slug }}" onclick="return false;">{{ entry.slug }}</a>
+        {% if current_user and current_user.id == entry.author_id %}
+            <a href="javascript:"
+               onclick="window.location.href='/blog/compose{{ entry.cat_id }}?id={{ entry.id }}'">编辑</a>
+        {% end %}
+        <span>分享链接：</span><a href="/share/entry/{{ entry.slug }}" onclick="return false;">{{ entry.slug }}</a>
+        <span style="margin-left: 10px">文字{{ entry.size }}B, 图片及附件{{ '%dKB' % (entry.attach_size/1024) }}</span>
     </h4>
-  <div class="date" style="font-style: italic;">
-      &copy{{ get_authorname_by_id(entry.author_id) }},
-      @{{ entry.published.strftime('%Y-%m-%d %H:%M:%S') }}
-      {{ ", **加密**" if entry.is_encrypt else "" }}
-      {{ ""  if entry.is_public else ", 仅自己可见"}}
-      {{ ", 关键词:"+entry.search_tags if entry.search_tags is not None else "" }}
-  </div>
-  <div class="body">{% raw entry.html %}</div>
-  {% if current_user and current_user.id == entry.author_id %}
-    <div class="admin"><a href="javascript:" onclick="window.location.href='/blog/compose{{ entry.cat_id }}?id={{ entry.id }}'">编辑</a></div>
-  {% end %}
+    <div class="date" style="font-style: italic;margin-bottom: 15px;">
+        &copy{{ get_authorname_by_id(entry.author_id) }},
+        @{{ entry.published.strftime('%Y-%m-%d %H:%M:%S') }}
+        {{ ", **加密**" if entry.is_encrypt else "" }}
+        {{ ""  if entry.is_public else ", 仅自己可见" }}
+        , 关键词:[{{ entry.search_tags if entry.search_tags is not None else "" }}]
+    </div>
+    <div>{% raw entry.html %}</div>
 </div>

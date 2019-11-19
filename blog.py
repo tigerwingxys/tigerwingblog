@@ -27,7 +27,7 @@ import tornado.options
 import tornado.web
 from importlib import import_module
 from infrastructure.utils.db_conn import DbConnect
-from views import blogs, images
+from views import blogs, auth, images
 
 from tornado.options import define, options
 
@@ -76,6 +76,7 @@ class Application(tornado.web.Application):
             mail_port=options.mail_port,
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
+            upload_path=os.path.join(os.path.dirname(__file__), "static", "uploads"),
             ui_modules={"Entry": blogs.EntryModule},
             xsrf_cookies=True,
             cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
@@ -92,19 +93,21 @@ class Application(tornado.web.Application):
             (r"/blog/archive(\d+)-(\d+)", blogs.ArchiveHandler),
             (r"/blog/search(\d+)-(\d+)/(.+)", blogs.SearchHandler),
             (r"/blog/compose(\d*)", blogs.ComposeHandler),
+            (r"/blog/delete(\d*)", blogs.DeleteHandler),
             (r"/share/entry/([^/]+)", blogs.ShareEntryHandler),
             (r"/catalog/add", blogs.CatalogHandler),
             (r"/catalog/update", blogs.CatalogHandler),
             (r"/feed", blogs.FeedHandler),
-            (r"/images/upload", images.UploadHandler, dict(upload_path=os.path.join(settings["static_path"], "uploads"), naming_strategy=None)),
-            (r"/images/image(.*)", images.DownloadHandler, dict(base_path=os.path.join(settings["static_path"], "uploads"))),
-            (r"/auth/create", blogs.AuthCreateHandler),
-            (r"/auth/activate", blogs.AuthActivateHandler),
-            (r"/auth/login", blogs.AuthLoginHandler),
-            (r"/auth/logout", blogs.AuthLogoutHandler),
-            (r"/auth/settings", blogs.AuthSettingsHandler),
-            (r"/auth/reset_password", blogs.AuthResetHandler),
-            (r"/auth/forget_password", blogs.AuthForgetHandler),
+            (r"/images/upload(\d+)", images.UploadHandler, dict(upload_path=settings['upload_path'], naming_strategy=None)),
+            (r"/images/image(.+)", images.DownloadHandler, dict(base_path=settings['upload_path'])),
+            (r"/images/manage(.*)", images.FileManageHandler, dict(base_path=settings['upload_path'])),
+            (r"/auth/create", auth.AuthCreateHandler),
+            (r"/auth/activate", auth.AuthActivateHandler),
+            (r"/auth/login", auth.AuthLoginHandler),
+            (r"/auth/logout", auth.AuthLogoutHandler),
+            (r"/auth/settings", auth.AuthSettingsHandler),
+            (r"/auth/reset_password", auth.AuthResetHandler),
+            (r"/auth/forget_password", auth.AuthForgetHandler),
         ]
 
         super(Application, self).__init__(handlers, **settings)
@@ -119,7 +122,7 @@ async def main():
                     db_password=options.db_password, db_database=options.db_database, )
 
     app = Application()
-    app.listen(options.port)
+    app.listen(options.port, xheaders=True)
 
     shutdown_event = tornado.locks.Event()
     await shutdown_event.wait()

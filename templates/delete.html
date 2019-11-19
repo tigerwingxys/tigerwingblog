@@ -1,13 +1,17 @@
 {% extends "frame_base.html" %}
 
 {% block body %}
-  {% module Entry(entry) %}
+
   {% if current_user and current_user.id == entry.author_id %}
-    <div>
-        <a href="javascript:" onclick="window.location.href='/blog/compose{{ entry.cat_id }}?id={{ entry.id }}'">编辑</a>
-        <a href="javascript:" onclick="window.location.href='/blog/delete{{ entry.cat_id }}?id={{ entry.id }}'">删除</a>
-    </div>
+    <form action="/blog/delete{{ entry.cat_id }}?id={{ entry.id }}" method="POST" style="color: red; font-size: 18px;">
+        <span>请确认是否要从服务器删除该文章及相关附件，删除后将无法恢复！</span><br>
+        <input type="submit" value="确定删除" style="width: 80px;">
+        <input type="button" value="取消删除" onclick="window.location.href='/blog/entry/{{ entry.slug }}'" style="width: 80px;margin: 20px 20px 20px 20px;"><br>
+          {% module xsrf_form_html() %}
+        <input type="hidden" name="id" value="{{ entry.id }}">
+    </form>
   {% end %}
+  {% module Entry(entry) %}
 {% end %}
 
 {% block bottom %}

@@ -16,7 +16,6 @@
 #
 # this file created at 2019.8.27
 
-import bcrypt
 import tornado.escape
 import tornado.httpserver
 import tornado.ioloop
@@ -25,12 +24,12 @@ import tornado.options
 import tornado.web
 from tornado.web import MissingArgumentError
 from tornado.escape import json_encode, json_decode
-from infrastructure.utils.db_conn import NoResultError,begin_transaction,commit_transaction,rollback_transaction
 from data.author import Author
 from data.entry import Entry
 from data.catalog import Catalog
-from business.author_process import check_password
+from data.author_operation import AuthorOperation
 from views.basehandler import BaseHandler
+from infrastructure.utils.common import get_text
 
 DEFAULT_FETCH_SIZE = 10
 DEFAULT_CONTENT_URL = "/blog/archive0-%d" % DEFAULT_FETCH_SIZE
@@ -44,12 +43,13 @@ def get_authorname_by_id(author_id):
     return name
 
 
+
 class HomeHandler(BaseHandler):
     async def get(self):
-        try:
-            goto = self.get_argument("goto")
+        goto = self.get_argument("goto", None)
+        if goto:
             goto_url = "/blog/entry/"+goto
-        except MissingArgumentError:
+        else:
             goto_url = DEFAULT_CONTENT_URL
         self.render("base.html", content_url=goto_url, get_authorname_by_id=get_authorname_by_id)
 
@@ -60,6 +60,7 @@ class ShareEntryHandler(BaseHandler):
         self.render("base.html", content_url=goto_url, get_authorname_by_id=get_authorname_by_id)
 
 class MyBlogHandler(BaseHandler):
+    @tornado.web.authenticated
     async def get(self,offset, fetch_size, cat_id):
         user_id = self.current_user.id
         offset = int(offset)
@@ -67,10 +68,7 @@ class MyBlogHandler(BaseHandler):
         if fetch_size is None or fetch_size == 0:
             fetch_size = DEFAULT_FETCH_SIZE
         origin_entries, key_entries = await Entry().get_entries_by_author(user_id, cat_id)
-        try:
-            tag_key = self.get_argument("tag_key")
-        except MissingArgumentError:
-            tag_key = ""
+        tag_key = self.get_argument("tag_key", "")
         entries = key_entries[tag_key] if len(tag_key) != 0 else origin_entries
         entry_cnt = len(entries)
         page_cnt = int(entry_cnt/fetch_size)
@@ -95,10 +93,12 @@ class MyBlogHandler(BaseHandler):
                 tt = "%s(%d)" % (key, cnt)
                 pages.append({"url": url + key, "page_title": tt})
         part_entries = entries[offset:offset+fetch_size]
-        self.render("archive.html", entries=part_entries, pages=pages, current_page=str(offset), get_authorname_by_id=get_authorname_by_id)
+
+        self.render("archive.html", entries=part_entries, pages=pages, current_page=str(offset), get_authorname_by_id=get_authorname_by_id, quota=True, get_text=get_text)
 
 
 class MyBlogTreeHandler(BaseHandler):
+    @tornado.web.authenticated
     async def post(self):
         user_id = None
         if self.current_user is not None:
@@ -108,19 +108,19 @@ class MyBlogTreeHandler(BaseHandler):
         result = []
         base_url = "/blog/myblogs0-%d/" % DEFAULT_FETCH_SIZE
         result.append({"id": 0, "pId": -1, "open": "true", "name": "根文件夹", "entry_url": base_url})
+        total = 0
         for row in cats:
             cnt = row["entries_cnt"]
+            total += cnt
             cname = row["cat_name"] + ("(%d)" % cnt)
-            if cnt > 0:
-                result.append({"id": row["cat_id"], "pId": row["parent_id"], "open": "true", "click": "true", "name": cname, "entry_url": (base_url + str(row["cat_id"]))})
-            else:
-                result.append({"id": row["cat_id"], "pId": row["parent_id"], "open": "true", "name": cname})
+            result.append({"id": row["cat_id"], "pId": row["parent_id"], "open": "true", "click": "true", "name": cname, "entry_url": (base_url + str(row["cat_id"]))})
+        result[0]['name'] = '根文件夹(%d)' % total
         self.write(json_encode(result))
 
 
 class blogEntryHandler(BaseHandler):
     async def get(self, slug):
-        entry = await Entry().get_entry(slug=slug)
+        entry = await Entry().get(slug=slug)
         if not entry:
             raise tornado.web.HTTPError(404)
         self.render("entry.html", entry=entry)
@@ -138,11 +138,8 @@ class ArchiveHandler(BaseHandler):
         fetch_size = int(fetch_size)
         if fetch_size is None or fetch_size == 0:
             fetch_size = DEFAULT_FETCH_SIZE
-        origin_entries, key_entries = await Entry().get_entries()
-        try:
-            tag_key = self.get_argument("tag_key")
-        except MissingArgumentError:
-            tag_key = ""
+        origin_entries, key_entries = await Entry().get_shared()
+        tag_key = self.get_argument("tag_key", "")
         entries = key_entries[tag_key] if len(tag_key) != 0 else origin_entries
         entry_cnt = len(entries)
         page_cnt = int(entry_cnt/fetch_size)
@@ -167,7 +164,7 @@ class ArchiveHandler(BaseHandler):
                 tt = "%s(%d)" % (key, cnt)
                 pages.append({"url": url + key, "page_title": tt})
         part_entries = entries[offset:offset+fetch_size]
-        self.render("archive.html", entries=part_entries, pages=pages, current_page=str(offset), get_authorname_by_id=get_authorname_by_id)
+        self.render("archive.html", entries=part_entries, pages=pages, current_page=str(offset), get_authorname_by_id=get_authorname_by_id, quota=False, get_text=get_text)
 
 
 class SearchHandler(BaseHandler):
@@ -176,7 +173,7 @@ class SearchHandler(BaseHandler):
         fetch_size = int(fetch_size)
         if fetch_size is None or fetch_size == 0:
             fetch_size = DEFAULT_FETCH_SIZE
-        entries = await Entry().search_entries(search_text)
+        entries = await Entry().search(search_text)
         entry_cnt = len(entries)
         page_cnt = int(entry_cnt/fetch_size)
         if (entry_cnt % fetch_size) > 0:
@@ -191,12 +188,12 @@ class SearchHandler(BaseHandler):
                 pages.append({"url": url, "page_title": str(ipage)})
                 i = i+1
         part_entries = entries[offset:offset+fetch_size]
-        self.render("archive.html", entries=part_entries, pages=pages, current_page=offset, get_authorname_by_id=get_authorname_by_id)
+        self.render("archive.html", entries=part_entries, pages=pages, current_page=offset, get_authorname_by_id=get_authorname_by_id, quota=False, get_text=get_text)
 
 
 class FeedHandler(BaseHandler):
     async def get(self):
-        entries, key_entries = await Entry().get_entries(fetch_size=10)
+        entries, key_entries = await Entry().get_shared(fetch_size=10)
         self.set_header("Content-Type", "application/atom+xml")
         self.render("feed.xml", entries=entries)
 
@@ -211,40 +208,70 @@ class ComposeHandler(BaseHandler):
         editor = ss["default-editor"]
 
         entry_id = self.get_argument("id", None)
-        entry = None
         if entry_id:
-            entry = await Entry().get_entry(entry_id=entry_id)
+            entry = await Entry().get(entry_id=entry_id)
             editor = entry.editor
+        else:
+            entry = await Entry().get_empty_entry(author_id=self.current_user.id, cat_id=cat_id, editor=editor)
+
         self.render(compose_editor[editor], entry=entry, cat_id=cat_id)
 
     @tornado.web.authenticated
     async def post(self, cat_id):
-        entry_id = self.get_argument("id", None)
+        entry_id = self.get_argument("id")
         title = self.get_argument("title")
-        text = self.get_argument("content-editormd-markdown-doc")
-        try:
-            html = self.get_argument("content-editormd-html-code")
-        except MissingArgumentError:
+        text = self.get_argument("content-editormd-markdown-doc", "")
+        html = self.get_argument("content-editormd-html-code", "")
+        if len(html) == 0:
             html = text
+        ss = eval(self.current_user.settings)
+        if ss['default-editor'] == 'kind-editor':
+            html = text
+            text = ''
         search_tags = self.get_argument("search_tags")
         # cat_id = int(self.get_argument("cat_id"))
         try:
-            is_public = bool(self.get_argument("is_public"))
+            is_public = self.get_argument("is_public")
         except MissingArgumentError:
             is_public = False
+        else:
+            is_public = True
         try:
-            is_encrypt = bool(self.get_argument("is_encrypt"))
+            is_encrypt = self.get_argument("is_encrypt")
         except MissingArgumentError:
             is_encrypt = False
-        # html = markdown.markdown(text)
-        if entry_id:
-            entry = await Entry().update_entry(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
-            slug = entry.slug
         else:
-            slug = await Entry().add_entry(self.current_user, title, text, html, is_public, is_encrypt, search_tags, cat_id)
+            is_encrypt = True
+        # html = markdown.markdown(text)
+        if await Entry().is_exists(entry_id=entry_id):
+            entry = await Entry().update(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
+            slug = entry.slug
+            await AuthorOperation().add(self.current_user.id, 'update_entry', self.request.headers.get("X-Real-IP", '') or self.request.remote_ip, str({"entry_id": entry_id}))
+        else:
+            slug = await Entry().add_entry(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
+            await AuthorOperation().add(self.current_user.id, 'add_entry', self.request.headers.get("X-Real-IP", '') or self.request.remote_ip, str({"entry_id": entry_id}))
         self.redirect("/blog/refresh/" + slug)
 
+
+class DeleteHandler(BaseHandler):
+    @tornado.web.authenticated
+    async def get(self, cat_id):
+        entry_id = self.get_argument('id', '')
+        entry = await Entry().get(entry_id=entry_id)
+        if not entry:
+            raise tornado.web.HTTPError(404)
+        self.render('delete.html', entry=entry)
+
+    @tornado.web.authenticated
+    async def post(self, cat_id):
+        entry_id = self.get_argument('id', '')
+
+        await Entry().delete(self.current_user.id, entry_id, cat_id)
+        await AuthorOperation().add(self.current_user.id, 'delete_entry', self.request.headers.get('X-Real-IP', '') or self.request.remote_ip, str({'entry_id': entry_id}))
+        self.render("login_ok.html", message="文章已经删除，自动跳转到主页", goto_url="/", delay=1000)
+
 class CatalogHandler(BaseHandler):
+    @tornado.web.authenticated
     async def post(self):
         args = json_decode(self.request.body)
         method = args.get('method')
@@ -275,191 +302,8 @@ class CatalogHandler(BaseHandler):
                 "message": "方法[%s]没有定义!" % method
             }
             self.write(json_encode(result))
+        await AuthorOperation().add(self.current_user.id, 'catalog', self.request.headers.get("X-Real-IP", ''), str(result))
 
-class AuthCreateHandler(BaseHandler):
-    def get(self):
-        self.render("create_author.html", error=None)
-
-    async def post(self):
-        try:
-            author1 = await Author().get_author_by_email(self.get_argument("email"))
-        except NoResultError:
-            pass
-        else:
-            self.render("create_author.html", error="email已经存在，请不要重复注册！")
-            return
-
-        hashed_password = await tornado.ioloop.IOLoop.current().run_in_executor(
-            None,
-            bcrypt.hashpw,
-            tornado.escape.utf8(self.get_argument("password")),
-            bcrypt.gensalt(),
-        )
-        hashed_password = tornado.escape.to_unicode(hashed_password)
-
-        import random, string, time
-        key = ''.join(random.sample(string.ascii_letters, 8))
-        key = key + str(time.perf_counter())
-        hash_key = await tornado.ioloop.IOLoop.current().run_in_executor(
-            None,
-            bcrypt.hashpw,
-            tornado.escape.utf8(key),
-            bcrypt.gensalt(),
-        )
-        hash_key = tornado.escape.to_unicode(hash_key)
-
-        author = await Author().add_author(self.get_argument("email"), self.get_argument("name"), hashed_password, key)
-
-        act_link = '%s/auth/activate?author_id=%s&activate_key=%s&email=%s&create_date=%s' % \
-                   (self.settings["home_domain"], author.id, hash_key, author.email, author.create_date.strftime('%Y-%m-%d %H:%M:%S'))
-
-        mail_content = self.render_string("activate_author.html", author=author, act_link=act_link)
-        import yagmail
-        yag = yagmail.SMTP(user=self.settings["mail_user"], password=self.settings["mail_password"],
-                           host=self.settings["mail_host"], port=self.settings["mail_port"])
-        subject = "%s欢迎您" % self.settings["blog_title"]
-        try:
-            yag.send(to=author.email, subject=subject, contents=mail_content.decode())
-        except Exception :
-            await Author().del_author(author.id)
-            message = "无法发送激活邮件，注册失败！"
-            self.render("create_author.html", error=message)
-            return
-
-        message = "欢迎注册%s，激活邮件已经发送到您的邮箱[%s]，收到邮件后点击激活链接即可激活帐户。" \
-                  "提示：激活之前无法登录系统，但可以继续浏览他人写的博客。5秒钟后跳转到主页" \
-                  % (self.settings["blog_title"], author.email)
-        self.render("login_ok.html", message=message, goto_url="/", delay=5000)
-
-
-class AuthActivateHandler(BaseHandler):
-    async def get(self):
-        author_id = self.get_argument("author_id")
-        key = self.get_argument("activate_key")
-        create_date = self.get_argument("create_date")
-        email = self.get_argument("email")
-        try:
-            author = Author().get_author(author_id)
-        except NoResultError:
-            self.clear_cookie("tigerwingblog")
-            self.render("login_ok.html", message="帐户不存在！5秒后跳转到主页……", goto_url="/", delay=5000)
-            return
-        if email != author.email or author.create_date.strftime('%Y-%m-%d %H:%M:%S') != create_date:
-            self.render("login_ok.html", message="email错误！5秒后跳转到主页……", goto_url="/", delay=5000)
-            self.clear_cookie("tigerwingblog")
-            return
-
-        if await check_password(author.activate_key, key):
-            await Author().activate_author(author_id)
-            self.set_secure_cookie("tigerwingblog", author_id, expires_days=None)
-            self.render("login_ok.html", message="email(%s)验证成功, 1秒后跳转到主页……" % email, goto_url="/", delay=1000)
-        else:
-            self.clear_cookie("tigerwingblog")
-            self.render("login_ok.html", message="email(%s)验证失败！5秒后跳转到主页……" % email, goto_url="/", delay=5000)
-
-class AuthLoginHandler(BaseHandler):
-    async def get(self):
-        self.render("login.html", error=None)
-
-    async def post(self):
-        try:
-            author = await Author().get_author_by_email( self.get_argument("email"))
-        except NoResultError:
-            self.render("login.html", error="帐户不存在！")
-            return
-        if author.activate_state is False:
-            self.render("login.html", error="帐户未激活，请到注册邮箱中点击激活链接激活帐户！")
-        if await check_password(self.get_argument("password"), author.hashed_password):
-            self.set_secure_cookie("tigerwingblog", str(author.id), expires_days=None)
-            self.render("login_ok.html", message="登录成功，跳转到主页", goto_url="/", delay=1)
-        else:
-            self.render("login.html", error="密码错误！")
-
-
-class AuthLogoutHandler(BaseHandler):
-    def get(self):
-        self.clear_cookie("tigerwingblog")
-        self.redirect(self.get_argument("next", "/"))
-
-
-class AuthSettingsHandler(BaseHandler):
-    async def get(self):
-        ss = eval(self.current_user.settings)
-        self.render("settings.html", settings=ss, error=None)
-
-    async def post(self):
-        default_editor = self.get_argument("default-editor")
-        new_name = self.get_argument("new-name")
-
-        ss = eval(self.current_user.settings)
-        ss["default-editor"] = default_editor
-        self.current_user.settings = str(ss)
-        self.current_user.name = new_name
-
-        await Author().update(self.current_user)
-        self.render("login_ok.html", message="设置修改成功，自动跳转到主页", goto_url="/", delay=1000)
-
-
-class AuthResetHandler(BaseHandler):
-    async def get(self):
-        self.render("reset_password.html", error=None)
-
-    async def post(self):
-        if await check_password(self.get_argument("old_password"), self.current_user.hashed_password) is not True:
-            self.render("reset_password.html", error="旧密码输入错误！")
-            return
-
-        new_password = self.get_argument("password")
-        hashed_password = await tornado.ioloop.IOLoop.current().run_in_executor(
-            None,
-            bcrypt.hashpw,
-            tornado.escape.utf8(new_password),
-            bcrypt.gensalt(),
-        )
-        new_password = tornado.escape.to_unicode(hashed_password)
-        self.current_user.hashed_password = new_password
-        await Author().update(self.current_user)
-        self.render("login_ok.html", message="密码修改成功，自动跳转到主页", goto_url="/", delay=1000)
-
-
-class AuthForgetHandler(BaseHandler):
-    async def get(self):
-        self.render("forget_password.html", error=None)
-
-    async def post(self):
-        try:
-            author = await Author().get_author_by_email( self.get_argument("email"))
-        except NoResultError:
-            self.render("forget_password.html", error="帐户不存在！")
-            return
-
-        import random, string, time
-        key = ''.join(random.sample(string.ascii_letters, 8))
-        key = key + str(time.perf_counter())
-        hash_key = await tornado.ioloop.IOLoop.current().run_in_executor(
-            None,
-            bcrypt.hashpw,
-            tornado.escape.utf8(key),
-            bcrypt.gensalt(),
-        )
-        hash_key = tornado.escape.to_unicode(hash_key)
-
-        mail_content = "<h3>尊敬的%s：</h3><br><br><p>您的密码已经重新初始化，新的密码是：%s，请务必牢记。" \
-                       "</p><br><br><br><br><p>提示：请不要回复该邮件。</p>" % (author.name, key)
-        import yagmail
-        yag = yagmail.SMTP(user=self.settings["mail_user"], password=self.settings["mail_password"],
-                           host=self.settings["mail_host"], port=self.settings["mail_port"])
-        subject = "密码重置成功"
-        try:
-            yag.send(to=author.email, subject=subject, contents=mail_content)
-        except Exception :
-            message = "无法发送密码重置邮件，重置失败！"
-            self.render("forget_password.html", error=message)
-            return
-
-        author.hashed_password = hash_key
-        await Author().update(author)
-        self.render("login_ok.html", message="密码重置成功，新密码已经发送到您的邮箱，请重新登录", goto_url="/", delay=2000)
 
 class EntryModule(tornado.web.UIModule):
     def render(self, entry):

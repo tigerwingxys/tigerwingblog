@@ -48,7 +48,7 @@ header nav a {
 	font-family: source-sans-pro, sans-serif;
 	font-style: normal;
 	font-weight: 200;
-	text-align: justify;
+	text-align: left;
 }
 #content #mainContent #authorInfo {
 	/* Author info section */
@@ -78,6 +78,7 @@ header nav a {
 	float: left;
 	padding-top: 10px;
 	border-width: 0px;
+	text-align: left;
 }
 #mainContent {
 	/* Container for the blog post in individual blog view */
@@ -226,6 +227,60 @@ footer {
 }
 #m_new_diary,#m_new_blog{
 	width: 98%;
+}
+.entry h1 a {
+  color: black;
+  text-decoration: none;
+}
+
+.entry {
+	text-align: left;
+  margin-bottom: 2em;
+}
+
+.entry .date {
+  margin-top: 3px;
+	margin-bottom: 10px;
+	color: #7f7e7e;
+}
+
+.entry p {
+  margin: 0;
+  margin-bottom: 1em;
+}
+
+.entry .body {
+	margin-top: 1em;
+	line-height: 16pt;
+	text-align: left;
+}
+
+ul.archive {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+}
+
+ul.archive li {
+	margin-bottom: 1.5em;
+}
+ul.archive li:nth-of-type(even){ background: #f9f9f9;}
+
+ul.archive .title {
+	font-family: "Helvetica Nue", Helvetica, Arial, sans-serif;
+	font-size: 14pt;
+}
+
+ul.archive .sec_title {
+	font-family: "Bitstream Vera Sans Mono", Monaco, "Courier New", Courier, monospace;
+	font-size: 12pt;
+	color: #6C8CD5;
+}
+
+#entry_brief {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
 }
 
 /* Mobile view */

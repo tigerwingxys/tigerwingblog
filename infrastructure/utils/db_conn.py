@@ -91,11 +91,14 @@ class DbConnect:
             some_row_exists = await self.query_check(...)
         """
         conn = DbConnect.get_db_conn()
-        with conn:
-            with conn.cursor() as cur:
-                cur.execute(stmt, args)
-                cur.fetchone()
-                result = cur.rowcount
+        try:
+            with conn:
+                with conn.cursor() as cur:
+                    cur.execute(stmt, args)
+                    cur.fetchone()
+                    result = cur.rowcount
+        except NoResultError:
+            result = 0
         return result > 0
 
     @staticmethod

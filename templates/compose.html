@@ -1,9 +1,9 @@
-      <div id="compose_title" style="padding-left: 4px;text-align: left;" ><h2>标题：<input name="title" style="width: 40%;" type="text" value="{{ entry.title if entry else (datetime.datetime.now().strftime('%Y-%m-%d(%A)') if cat_id=='11' else "") }}" placeholder="请输入文章标题……"/></h2>
-          <input type="checkbox" name="is_public" id="is_public" {{ "checked"  if entry and entry.is_public else ""}}/>
+      <div id="compose_title" style="padding-left: 4px;text-align: left;" ><h2>标题：<input name="title" style="width: 40%;" type="text" value="{{ entry.title}}" placeholder="请输入文章标题……"/></h2>
+          <input type="checkbox" name="is_public" id="is_public" {{ "checked"  if entry.is_public else ""}}/>
           <label for="is_public" title="打勾后允许所有人查看">是否公开</label>
-          <input type="checkbox" name="is_encrypt" id="is_encrypt" onclick="setEncrypt();" style="margin-left: 20px;" {{ "checked"  if entry and entry.is_encrypt else ""}}/>
+          <input type="checkbox" name="is_encrypt" id="is_encrypt" onclick="setEncrypt();" style="margin-left: 20px;" {{ "checked"  if entry.is_encrypt else ""}}/>
           <label for="is_encrypt" title="加密后，请务必记住密码，后台不存储该密码，密码忘记后该日志将永久无法打开！">是否加密</label>
           *密码:<input type="password" id="entry_password" name="entry_password" title="加密后，请务必记住密码，后台不存储该密码，密码忘记后该日志将永久无法打开！" style="margin-right: 20px;"/>
-          检索关键词:<input type="text" name="search_tags" id="search_tags" title="检索关键词，逗号或空格分隔。" placeholder="请输入检索关键词，逗号或空格分隔……" value="{{ entry.search_tags if entry else "" }}" style="width: 40%;"/>
-          <input type="text" name="cat_id" id="cat_id" style="display: none" value="{{ entry.cat_id if entry else cat_id }}"/>
+          检索关键词:<input type="text" name="search_tags" id="search_tags" title="检索关键词，逗号或空格分隔。" placeholder="请输入检索关键词，逗号或空格分隔……" value="{{ entry.search_tags }}" style="width: 40%;"/>
+          <input type="text" name="cat_id" id="cat_id" style="display: none" value="{{ entry.cat_id }}"/>
       </div>

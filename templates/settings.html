@@ -7,17 +7,19 @@
 
 <form action="/auth/settings" method="POST">
     <span>个人信息</span><br>
-    <span style="margin-left: 40px;">帐户：{{ handler.current_user.email }}，姓名：{{ handler.current_user.name }}</span><br><br>
+    <span style="margin-left: 40px;">帐户：{{ current_user.email }}，姓名：{{ current_user.name }}</span><br><br>
     <span style="margin-left: 40px;">修改新姓名：</span>
-    <input type="text" name="new-name" value="{{ handler.current_user.name }}"><br><br>
+    <input type="text" name="new-name" value="{{ current_user.name }}" style="width: 150px;font-size: 16px;"><br><br>
     <span style="margin-left: 40px"><a href="javascript:" onclick="window.location.href='/auth/reset_password';return false;">修改密码</a> </span>
     <br><br>
     <span>其他</span><br>
     <span style="margin-left: 40px;">默认编辑器：</span>
-    <select id="default-editor" name="default-editor" title="建议选择‘富文本编辑器’">
+    <select id="default-editor" name="default-editor" title="建议选择‘富文本编辑器’" style="width: 156px;font-size: 16px;">
         <option value="kind-editor" title="编写风格类似Word，简单易用" selected="selected">富文本编辑器</option>
         <option value="editor.md" title="轻量级标记语言，用纯文本进行文档编写">Markdown编辑器</option>
-    </select>
+    </select><br><br>
+    <span style="margin-left: 40px">空间限额{{ current_user.quota }}MB，当前空间使用{{ author_settings["usage"] }}，其中图片及附件占用空间{{ author_settings["attach_usage"] }}。
+        <a href="javascript:" onclick="window.location.href='/blog/myblogs0-10/';return false;">空间使用情况</a> </span>
     {% module xsrf_form_html() %}
     <br><br><br>
     <input type="submit" style="margin-left: 40px;" value="保存设置"/>
@@ -27,7 +29,7 @@
     <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function () {
-            $("#default-editor").find("option[value='{{ settings["default-editor"] }}']").attr("selected",true);
+            $("#default-editor").find("option[value='{{ author_settings["default-editor"] }}']").attr("selected",true);
         });
     </script>
 {% end %}

@@ -8,16 +8,14 @@
   <form action="{{ request.path }}" method="post" class="compose">
     {% include "compose.html" %}
     <div id="content-editormd" class="form-group">
-        <textarea style="display:none;" class="form-control" id="content-editormd-markdown-doc" name="content-editormd-markdown-doc">{{ entry.markdown if entry else "" }}</textarea>
+        <textarea style="display:none;" class="form-control" id="content-editormd-markdown-doc" name="content-editormd-markdown-doc">{{ entry.markdown }}</textarea>
     </div>
 
     <div>
-      <input type="submit" value="{{ _("保存变更") if entry else _("保存") }}" class="submit"/>
-      &nbsp;<a href="{{ "/blog/entry/" + entry.slug if entry else "/" }}">{{ _("取消") }}</a>
+      <input type="submit" value="{{ _("保存") }}" class="submit"/>
+      &nbsp;<a href="{{ "/blog/entry/" + entry.slug if entry.slug != "" else "/blog/archive0-10" }}">{{ _("取消") }}</a>
     </div>
-    {% if entry %}
-      <input type="hidden" name="id" value="{{ entry.id }}"/>
-    {% end %}
+    <input type="hidden" name="id" value="{{ entry.id }}"/>
     {% module xsrf_form_html() %}
   </form>
 {% end %}
@@ -54,7 +52,7 @@
                 //dialogMaskBgColor : "#000", // 设置透明遮罩层的背景颜色，全局通用，默认为#fff
                 imageUpload : true,
                 imageFormats : ["jpg", "jpeg", "gif", "png", "bmp", "webp"],
-                imageUploadURL : "/images/upload",
+                imageUploadURL : "/images/upload{{ entry.id }}",
                 onload : function() {
                     console.log('onload', this);
                     editormd.loadPlugin("/static/editormd/plugins/image-clipboard/image-clipboard",function () {

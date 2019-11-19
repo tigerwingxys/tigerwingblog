@@ -40,6 +40,7 @@ class Author(BaseTable):
             "VALUES (%s, %s, %s, %s) RETURNING *", email, name, upassword, key)
         EntriesStatistic().add_system_cats(author.id)
         CacheFlag().add("catalog", author_id=author.id, new_time=author.create_date)
+        CacheFlag().add("image", author_id=author.id, new_time=author.create_date)
         return author
 
     async def activate_author(self, author_id):
@@ -49,6 +50,7 @@ class Author(BaseTable):
         EntriesStatistic().delete_by_author(author_id)
         DbConnect.execute("delete from authors where id=%s and id!=0 ", author_id)
         CacheFlag().delete("catalog", author_id=author_id)
+        CacheFlag().delete("image", author_id=author_id)
 
     async def update(self, author):
         DbConnect.execute("update authors set name=%s, hashed_password=%s, settings=%s where id=%s",

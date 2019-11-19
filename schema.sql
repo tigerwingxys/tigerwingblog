@@ -105,7 +105,21 @@ alter table cache_flag drop constraint cache_flag_pkey;
 alter table cache_flag add constraint cache_flag_pkey primary key (author_id,cache_name);
 insert into cache_flag(cache_name,time_flag,int_flag,author_id)  select 'catalog',current_timestamp,0,id from authors where id!=0;
 
-# 2019-11-13
+# 2019-11-13 not flush to vultr
 alter table authors add column settings text not null default '{"default-editor": "kind-editor"}';
 alter table entries add column editor varchar (32) not null default 'kind-editor';
 
+# 2019-11-17
+alter table authors add column quota int not null default 50;
+alter table entries add column size int not null default 280;
+alter table entries add column attach_size int not null default 0;
+create table author_operation (
+    author_id int not null,
+    operate varchar (32) not null,
+    remote_ip varchar (18) not null,
+    operate_date timestamp not null default current_timestamp ,
+    info text
+);
+create index author_operation_idx on author_operation(author_id,operate_date);
+
+alter table entries add column state int not null default 1;
