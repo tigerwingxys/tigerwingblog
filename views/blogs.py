@@ -199,7 +199,7 @@ class FeedHandler(BaseHandler):
 
 
 compose_editor = {"kind-editor": "compose_kindedit.html", "editor.md": "compose_editormd.html"}
-
+one_MB = 1024*1024
 
 class ComposeHandler(BaseHandler):
     @tornado.web.authenticated
@@ -212,6 +212,14 @@ class ComposeHandler(BaseHandler):
             entry = await Entry().get(entry_id=entry_id)
             editor = entry.editor
         else:
+            rr = await Entry().get_usage_by_author(self.current_user.id)
+            usage = rr.attach_usage + rr.txt_usage
+            if usage >= self.current_user.quota * one_MB:
+                message = '您的使用限额为%dMB，您当前已经使用%.2fMB，2秒后自动跳转到使用空间管理……' % \
+                          (self.current_user.quota, usage/one_MB)
+                self.render("login_ok.html", message=message, goto_url="/auth/manage", delay=2000)
+                return
+
             entry = await Entry().get_empty_entry(author_id=self.current_user.id, cat_id=cat_id, editor=editor)
 
         self.render(compose_editor[editor], entry=entry, cat_id=cat_id)
