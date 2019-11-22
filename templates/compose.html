@@ -6,4 +6,5 @@
           *密码:<input type="password" id="entry_password" name="entry_password" title="加密后，请务必记住密码，后台不存储该密码，密码忘记后该日志将永久无法打开！" style="margin-right: 20px;"/>
           检索关键词:<input type="text" name="search_tags" id="search_tags" title="检索关键词，逗号或空格分隔。" placeholder="请输入检索关键词，逗号或空格分隔……" value="{{ entry.search_tags }}" style="width: 40%;"/>
           <input type="text" name="cat_id" id="cat_id" style="display: none" value="{{ entry.cat_id }}"/>
+          <input type="hidden" name="editor" value="{{ entry.editor }}">
       </div>

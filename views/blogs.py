@@ -294,12 +294,13 @@ class ComposeHandler(BaseHandler):
         title = self.get_argument("title")
         text = self.get_argument("content-editormd-markdown-doc", "")
         html = self.get_argument("content-editormd-html-code", "")
+        editor = self.get_argument("editor")
         if len(html) == 0:
             html = text
-        ss = eval(self.current_user.settings)
-        if ss['default-editor'] == 'kind-editor':
+        if editor == 'kind-editor':
             html = text
             text = ''
+
         search_tags = self.get_argument("search_tags")
         try:
             is_public = self.get_argument("is_public")
@@ -320,9 +321,7 @@ class ComposeHandler(BaseHandler):
         else:
             slug = await Entry().add_entry(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
             await AuthorOperation().add(self.current_user.id, 'add_entry', self.request.headers.get("X-Real-IP", '') or self.request.remote_ip, str({"entry_id": entry_id}))
-        goto_url = '/blog/entry/' + slug
-        # self.redirect("/blog/refresh/" + slug)
-        self.render("login_ok.html", goto_url=goto_url, message='ok', delay=1)
+        self.redirect("/blog/refresh/" + slug)
 
 
 class DeleteHandler(BaseHandler):
