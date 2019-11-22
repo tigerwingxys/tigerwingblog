@@ -46,7 +46,7 @@ class Entry(BaseTable):
         entry.title = datetime.datetime.now().strftime('%Y-%m-%d(%A)') if cat_id == '11' else ""
         entry.is_public = False
         entry.is_encrypt = False
-        entry.search_tags = ""
+        entry.search_tags = datetime.datetime.now().strftime('%Y-%m') if cat_id == '11' else ""
         entry.author_id = author_id
         entry.markdown = ""
         entry.html = ""
@@ -70,11 +70,11 @@ class Entry(BaseTable):
         ss = eval(author.settings)
         size = one_entry_init_size + len(text) + len(html)
         fpath = os.path.join(author.app_settings['upload_path'], str(author.id), entry_id)
-        attach_size = get_size(fpath)
+        attach_cnt, attach_size = get_size(fpath)
         entry = DbConnect.execute_returning(
-            "INSERT INTO entries (id,author_id,title,slug,markdown,html,is_public,is_encrypt,search_tags,cat_id,editor,size,attach_size,published,updated)"
-            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) returning published as create_date",
-            entry_id, author.id, title, slug, text, html, is_public, is_encrypt, search_tags, cat_id, ss["default-editor"],size,attach_size)
+            "INSERT INTO entries (id,author_id,title,slug,markdown,html,is_public,is_encrypt,search_tags,cat_id,editor,size,attach_size,attach_cnt,published,updated)"
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP) returning published as create_date",
+            entry_id, author.id, title, slug, text, html, is_public, is_encrypt, search_tags, cat_id, ss["default-editor"],size,attach_size,attach_cnt)
         EntriesStatistic().plus_one(author.id, cat_id)
         CacheFlag().update_cache_flag("entry", new_time=entry.create_date)
         CacheFlag().update_cache_flag("catalog", new_time=entry.create_date, author_id=author.id)
@@ -97,7 +97,11 @@ class Entry(BaseTable):
         CacheFlag().update_cache_flag("catalog", author_id=author_id)
 
     async def add_attach(self, entry_id, size):
-        DbConnect.execute("update entries set attach_size=(attach_size+%s) where id=%s", size, entry_id)
+        DbConnect.execute("update entries set attach_size=(attach_size+%s), attach_cnt=attach_cnt+1 where id=%s", size, entry_id)
+        CacheFlag().update_cache_flag("entry")
+
+    async def delete_attach(self, entry_id, size):
+        DbConnect.execute("update entries set attach_size=(attach_size-%s), attach_cnt=attach_cnt-1 where id=%s", size, entry_id)
         CacheFlag().update_cache_flag("entry")
 
     async def get(self, entry_id=None, slug=None):
@@ -133,11 +137,13 @@ class Entry(BaseTable):
 
         return cached_entries[author_id]["entries"], cached_entries[author_id]["key_entries"]
 
-    async def get_entries_by_author(self, author_id, cat_id=None, position_offset=0, fetch_size=None):
+    async def get_entries_by_author(self, author_id, cat_id='0', position_offset=0, fetch_size=None):
         if author_id is None or author_id == 0:
             return await self.get_shared(position_offset, fetch_size)
         global cached_entries
-        key = "%d%s" % (author_id,cat_id)
+        if cat_id is None or len(cat_id) == 0:
+            cat_id = '0'
+        key = "%d%s" % (author_id, cat_id)
         if author_id not in cached_entries.keys():
             cached_entries[key] = dict()
             cached_entries[key]["cache_query_time"] = datetime.datetime(2000, 1, 1)
@@ -148,7 +154,7 @@ class Entry(BaseTable):
             global max_fetch_size
             if fetch_size is not None and fetch_size > max_fetch_size:
                 fetch_size = max_fetch_size
-            if cat_id is None or len(cat_id) == 0:
+            if cat_id == '0':
                 cached_entries[key]["entries"] = DbConnect.query("SELECT * FROM entries WHERE author_id = %s and state=1 ORDER BY published DESC", position_offset, fetch_size, author_id)
             else:
                 cached_entries[key]["entries"] = DbConnect.query("SELECT * FROM entries WHERE author_id = %s and cat_id = %s and state=1 ORDER BY published DESC", position_offset, fetch_size, author_id, cat_id)
@@ -158,13 +164,28 @@ class Entry(BaseTable):
         return cached_entries[key]["entries"], cached_entries[key]["key_entries"]
 
     @cached(cache=TTLCache(maxsize=1024, ttl=3600))
-    async def search(self, search_text):
-        entries, key_entries = await self.get_shared()
+    async def search(self, search_text, author_id = None):
         result = []
-        for entry in entries:
-            if re.search(search_text, entry["title"]) or (entry["search_tags"] and re.search(search_text, entry["search_tags"]))\
-                    or re.search(search_text, entry["markdown"]):
-                result.append(entry)
+        if author_id is not None:
+            entries, key_entries = await self.get_entries_by_author(author_id)
+            for entry in entries:
+                if re.search(search_text, entry["title"]) or (entry["search_tags"] and re.search(search_text, entry["search_tags"])) \
+                        or re.search(search_text, entry["html"]):
+                    result.append(entry)
+
+        entries, key_entries = await self.get_shared()
+        if author_id is not None:
+            for entry in entries:
+                if author_id == entry['author_id']:
+                    continue
+                if re.search(search_text, entry["title"]) or (entry["search_tags"] and re.search(search_text, entry["search_tags"])) \
+                        or re.search(search_text, entry["html"]):
+                    result.append(entry)
+        else:
+            for entry in entries:
+                if re.search(search_text, entry["title"]) or (entry["search_tags"] and re.search(search_text, entry["search_tags"]))\
+                        or re.search(search_text, entry["html"]):
+                    result.append(entry)
         return result
 
     def analyze_tags(self, entries):

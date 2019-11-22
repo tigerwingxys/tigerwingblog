@@ -22,14 +22,17 @@ import time
 
 def get_size( file_path ):
     if not os.path.exists(file_path):
-        return 0
+        return 0, 0
     elif os.path.isfile(file_path):
-        return os.path.getsize(file_path)
+        return 1, os.path.getsize(file_path)
     else:
         size = 0
+        total_cnt = 0
         for f in (os.listdir(file_path)):
-            size += get_size(os.path.join(file_path, f))
-        return size
+            cnt, fsize = get_size(os.path.join(file_path, f))
+            size += fsize
+            total_cnt += cnt
+        return total_cnt, size
 
 
 def get_text(html):

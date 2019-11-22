@@ -1,0 +1,74 @@
+{% extends "frame_base.html" %}
+
+{% block head %}
+{% end %}
+
+{% block body %}
+<div class="tw-entry-attachment-header">
+    <div class="tw-left">共{{ len(attachments) }}个文件</div>
+    <div class="tw-right">
+        排序方式：
+        <select id="orderType" class="tw-inline-block" name="orderType" onchange="reSort(this);">
+            <option value="NAME" {% if orderType == 'NAME' %} selected="selected" {% end %}>名称</option>
+            <option value="SIZE" {% if orderType == 'SIZE' %} selected="selected" {% end %}>大小</option>
+            <option value="TYPE" {% if orderType == 'TYPE' %} selected="selected" {% end %}>类型</option>
+        </select>
+    </div>
+</div>
+<div id="attachments" class="tw-entry-attachment-body">
+    {% for file in attachments %}
+    <div class="tw-item" onmouseover="mouseOver(this);" onmouseout="mouseOut(this);">
+        <div class="tw-photo" style="cursor: pointer;"
+             title="{{ file['shortname'] }} ({{ file['filesize']//1024 }}KB, {{ file['datetime'] }})">
+            <a href="javascript:" onclick="window.location.href='/images/image{{ file['filename'] }}'">
+                {% if file['is_photo'] %}
+                <img class="tw-thumbnail" src="{{ current_url+file['filename'] }}" alt="{{ file['shortname'] }}">
+                {% else %}
+                <img class="tw-thumbnail" src="{{ static_url("images/file-64.gif") }}" alt="{{ file['shortname'] }}">
+                {% end %}
+            </a>
+        </div>
+        <div class="tw-name" title="{{ file['shortname'] }}">
+            <div class="tw-info">{{ file['shortname'] }}</div>
+            <div class="tw-size">{{ file['filesize']//1024 }}KB</div>
+            <div class="tw-datetime">{{ file['datetime'] }}</div>
+            <form action="/images/delete{{ file['filename'] }}" method="POST">
+                <div class="tw-link">
+                    <input type="button" onclick="if(conformDelete()){submit();};" value="删除">
+                    {% module xsrf_form_html() %}
+                </div>
+            </form>
+        </div>
+    </div>
+    {% end %}
+</div>
+{% end %}
+
+{% block bottom %}
+<script type="text/javascript">
+    var currentOrder = {{ orderType }};
+
+    function reSort(e) {
+        if (currentOrder == e.value) {
+            return;
+        }
+        window.location.href = '/images/manage{{ entry_id }}?order=' + e.value;
+    }
+
+    function mouseOver(e) {
+        e.className = 'tw-item tw-on';
+    }
+
+    function mouseOut(e) {
+        e.className = 'tw-item';
+    }
+
+    function conformDelete() {
+        if (confirm('确定要删除吗') == true) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+</script>
+{% end %}

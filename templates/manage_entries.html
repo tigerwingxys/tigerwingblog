@@ -1,0 +1,38 @@
+{% extends "frame_base.html" %}
+
+{% block head %}
+{% end %}
+
+{% block body %}
+  <ul class="archive">
+      <li>
+          <h3>您的空间限额{{ current_user.quota }}MB，共{{ usage["entries_cnt"] }}篇文章，
+              使用空间{{ usage["usage"] }}，其中图片及附件占用空间{{ usage["attach_usage"] }}。</h3>
+          {% for page in pages %}
+            <a href="javascript:" onclick="window.location.href='{{ page["url"] }}'" style="{{ 'font-weight: bold' if page["page_title"]==current_page else '' }};">{{ page["page_title"] }}</a>
+          {% end %}
+     </li>
+    {% for entry in entries %}
+      <li>
+          <div class="title">
+              <a href="javascript:" onclick="window.location.href='/blog/entry/{{ entry.slug }}'">{{ entry.title }}</a>
+              <span class="sec_title">
+                  --@{{ entry.published.strftime('%Y-%m-%d %H:%M:%S') }}
+                  {{ ", **加密**" if entry.is_encrypt else "" }}
+                  {{ "公开"  if entry.is_public else ", 私有"}}--
+              </span>
+              <span style="font-size: 14px;color: #4b15b1;">
+                  空间占用：文字{{ '%.2fKB' % (entry.size/1024) }},
+                  {% if entry.attach_cnt == 0 %}
+                  图片及附件({{ entry.attach_cnt }})个
+                  {% else %}
+                  <a href="javascript:" onclick="window.location.href='/images/manage{{ entry.id }}?order=NAME'" style="font-size: 16px;font-weight: bold;">图片及附件({{ entry.attach_cnt }})个</a>
+                  {% end %}
+                  {{ '%.2fKB' % (entry.attach_size/1024) }}
+              </span>
+              <a href="javascript:" onclick="window.location.href='/blog/delete{{ entry.cat_id }}?id={{ entry.id }}'">删除</a>
+          </div>
+      </li>
+    {% end %}
+  </ul>
+{% end %}

@@ -33,7 +33,7 @@ from infrastructure.utils.common import get_mtime,get_size
 from PIL import Image
 
 img_types = ["gif", "jpg", "jpeg", "png", "bmp"]
-sort_types = {'NAME': 'filename', 'SIZE': 'filesize', 'TYPE': 'filetype'}
+sort_types = {'NAME': 'shortname', 'SIZE': 'filesize', 'TYPE': 'filetype'}
 cached_files = dict()
 default_image_width = 800
 max_image_size = 1024000
@@ -71,16 +71,16 @@ class UploadHandler(BaseHandler):
 
                     buffer = fileinfo['body']
                     attach_size = len(buffer)
-                    if upload_type == 'image':
+                    if upload_type == 'image' and attach_size > 204800:
                         with io.BytesIO(buffer) as image_f:
                             with Image.open(image_f) as im:
+                                width, height = im.size
                                 if attach_size > max_image_size:
-                                    width, height = im.size
                                     height = int(default_image_width * (height/width))
                                     width = default_image_width
                                 im.thumbnail((width, height), resample=Image.ANTIALIAS)
-                                im.save(upload_path, quality=95)
-                                attach_size = get_size(upload_path)
+                                im.save(upload_path, quality=80)
+                                cnt, attach_size = get_size(upload_path)
                     else:
                         with open(upload_path, 'wb') as fh:
                             fh.write(buffer)
@@ -124,11 +124,8 @@ class DownloadHandler(BaseHandler):
                     self.write(data)
             self.finish()
 
-class FileManageHandler(BaseHandler):
-    def initialize(self, base_path):
-        self.base_path = base_path
 
-    def get_flist(self, author_id, entry_id, fpath):
+def get_flist(author_id, entry_id, fpath):
         global cached_files
         key = author_id+'-'+entry_id
         if key not in cached_files.keys():
@@ -153,34 +150,25 @@ class FileManageHandler(BaseHandler):
                 one['is_photo'] = file_ext in img_types
                 one['filetype'] = file_ext
                 one['filename'] = fn
+                one['shortname'] = fn[fn.rindex('~') + 1:]
                 one['datetime'] = get_mtime(filename)
                 rlist.append(one)
             cached_files[key]["rfiles"] = rlist
             cached_files[key]["cache_query_time"] = cache_time
         return cached_files[key]["rfiles"]
 
+
+class BrowseHandler(BaseHandler):
+    def initialize(self, base_path):
+        self.base_path = base_path
+
+
     @tornado.web.authenticated
     async def get(self, entry_id):
         fpath = os.path.join(self.base_path, str(self.current_user.id), entry_id)
-        rlist = self.get_flist(str(self.current_user.id), entry_id, fpath)
+        rlist = get_flist(str(self.current_user.id), entry_id, fpath)
         sort_order = self.get_argument('order')
-        #if os.path.exists(fpath):
-        #    flist = os.listdir(fpath)
-        #else:
-        #    flist = []
-        #rlist = []
-        #for fn in flist:
-        #    file_ext =(fn[fn.rindex('.')+1:]).lower()
-        #    filename = os.path.join(fpath, fn)
-        #    one = dict()
-        #    one["is_dir"] = False
-        #    one['has_file'] = False
-        #    one['filesize'] = os.path.getsize(filename)
-        #    one['is_photo'] = file_ext in imgTypes
-        #    one['filetype'] = file_ext
-        #    one['filename'] = fn
-        #    one['datetime'] = get_mtime(filename)
-        #    rlist.append(one)
+
         def cmp_func(element):
             return element[sort_types[sort_order]]
         rlist.sort(key=cmp_func)
@@ -192,3 +180,42 @@ class FileManageHandler(BaseHandler):
         result['file_list'] = rlist
 
         self.write(json_encode(result))
+
+
+class ManageHandler(BaseHandler):
+    def initialize(self, base_path):
+        self.base_path = base_path
+
+    @tornado.web.authenticated
+    async def get(self, entry_id):
+        fpath = os.path.join(self.base_path, str(self.current_user.id), entry_id)
+        rlist = get_flist(str(self.current_user.id), entry_id, fpath)
+        sort_order = self.get_argument('order')
+
+        def cmp_func(element):
+            return element[sort_types[sort_order]]
+
+        rlist.sort(key=cmp_func)
+        current_url = '/images/image'
+
+        self.render('entry_attach.html', attachments=rlist, current_url=current_url, entry_id=entry_id, orderType=sort_order)
+
+
+class DeleteHandler(BaseHandler):
+
+    def initialize(self, base_path):
+        self.base_path = base_path
+
+    @tornado.web.authenticated
+    async def post(self, filename):
+        idx = filename.index('-')
+        author_id = filename[:idx]
+        entry_id = filename[idx+1:filename.index('~')]
+        fpath = os.path.join(self.base_path, author_id, entry_id, filename)
+        if os.path.exists(fpath):
+            fsize = os.path.getsize(fpath)
+            os.remove(fpath)
+            await Entry().delete_attach(entry_id, fsize)
+            CacheFlag().update_cache_flag("image", author_id=author_id)
+
+        self.redirect('/images/manage%s?order=NAME' % entry_id)

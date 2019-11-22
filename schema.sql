@@ -55,7 +55,7 @@ create table cache_flag(
 );
 
 create table catalogs (
-    cat_id int primary key,
+    cat_id int not null ,
     cat_name varchar(64) not null ,
     author_id int not null references authors(id),
     parent_id int not null,
@@ -123,3 +123,11 @@ create table author_operation (
 create index author_operation_idx on author_operation(author_id,operate_date);
 
 alter table entries add column state int not null default 1;
+
+#2019-11-19
+alter table authors add column portrait text;
+alter table authors add column description text;
+alter table entries add column attach_cnt int not null default 0;
+
+alter table catalogs drop constraint catalogs_pkey cascade ;
+alter table catalogs add constraint catalogs_pkey primary key (author_id,cat_id);

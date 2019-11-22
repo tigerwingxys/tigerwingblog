@@ -48,7 +48,9 @@ class HomeHandler(BaseHandler):
     async def get(self):
         goto = self.get_argument("goto", None)
         if goto:
-            goto_url = "/blog/entry/"+goto
+            goto_url = goto
+        elif self.current_user:
+            goto_url = '/blog/myblogs0-10/'
         else:
             goto_url = DEFAULT_CONTENT_URL
         self.render("base.html", content_url=goto_url, get_authorname_by_id=get_authorname_by_id)
@@ -61,7 +63,7 @@ class ShareEntryHandler(BaseHandler):
 
 class MyBlogHandler(BaseHandler):
     @tornado.web.authenticated
-    async def get(self,offset, fetch_size, cat_id):
+    async def get(self, offset, fetch_size, cat_id):
         user_id = self.current_user.id
         offset = int(offset)
         fetch_size = int(fetch_size)
@@ -76,9 +78,14 @@ class MyBlogHandler(BaseHandler):
             page_cnt += 1
         i = 0
         pages = []
+        navigation = []
+        search_index = []
         url_suffix = ""
+        navigation.append({'url': '/blog/myblogs0-%d/' % fetch_size, 'page_title': '根文件夹' + ('' if len(cat_id)>1 else '(%d)' % len(origin_entries))})
+        if len(cat_id)>0 and cat_id != '0':
+            navigation.append({'url': '/blog/myblogs0-%d/%s' % (fetch_size, cat_id), 'page_title': '%s(%d)' % ((Catalog().get(user_id, cat_id)).cat_name, len(origin_entries))})
         if len(tag_key) > 0:
-            pages.append({"url": "#", "page_title": tag_key})
+            navigation.append({"url": "#", "page_title": '%s(%d)' % (tag_key, entry_cnt)})
             url_suffix = "?tag_key="+tag_key
         if page_cnt > 1:
             while i < page_cnt:
@@ -91,10 +98,11 @@ class MyBlogHandler(BaseHandler):
             for key in key_entries.keys():
                 cnt = len(key_entries[key])
                 tt = "%s(%d)" % (key, cnt)
-                pages.append({"url": url + key, "page_title": tt})
+                search_index.append({"url": url + key, "page_title": tt})
         part_entries = entries[offset:offset+fetch_size]
 
-        self.render("archive.html", entries=part_entries, pages=pages, current_page=str(offset), get_authorname_by_id=get_authorname_by_id, quota=True, get_text=get_text)
+        self.render("archive.html", entries=part_entries, pages=pages, navigation=navigation, search_index=search_index, current_page=str(offset),
+                    get_authorname_by_id=get_authorname_by_id, quota=True, get_text=get_text, search_text=None)
 
 
 class MyBlogTreeHandler(BaseHandler):
@@ -128,7 +136,7 @@ class blogEntryHandler(BaseHandler):
 
 class blogRefreshEntryHandler(BaseHandler):
     async def get(self, slug):
-        goto_url = "/?goto="+slug
+        goto_url = "/?goto=/blog/entry/"+slug
         self.render("login_ok.html", goto_url=goto_url, message='ok', delay=1)
 
 
@@ -147,9 +155,12 @@ class ArchiveHandler(BaseHandler):
             page_cnt += 1
         i = 0
         pages = []
+        navigation = []
+        search_index = []
         url_suffix = ""
+        navigation.append({'url': '/blog/archive0-%d' % fetch_size, 'page_title': '网站最新分享文章(%d)' % len(origin_entries)})
         if len(tag_key) > 0:
-            pages.append({"url": "#", "page_title": tag_key})
+            navigation.append({"url": "#", "page_title": '%s(%d)' % (tag_key, entry_cnt)})
             url_suffix = "?tag_key="+tag_key
         if page_cnt > 1:
             while i < page_cnt:
@@ -162,9 +173,53 @@ class ArchiveHandler(BaseHandler):
             for key in key_entries.keys():
                 cnt = len(key_entries[key])
                 tt = "%s(%d)" % (key, cnt)
+                search_index.append({"url": url + key, "page_title": tt})
+        part_entries = entries[offset:offset+fetch_size]
+        self.render("archive.html", entries=part_entries, pages=pages, navigation=navigation, search_index=search_index, current_page=str(offset),
+                    get_authorname_by_id=get_authorname_by_id, quota=False, get_text=get_text, search_text=None)
+
+
+class ManageHandler(BaseHandler):
+    @tornado.web.authenticated
+    async def get(self, offset, fetch_size):
+        ss = dict()
+        rr = await Entry().get_usage_by_author(self.current_user.id)
+        ss['attach_usage'] = '%.2fKB' % (rr.attach_usage/1024)
+        ss['usage'] = '%.2fKB' % ((rr.attach_usage+rr.txt_usage)/1024)
+
+        offset = int(offset)
+        fetch_size = int(fetch_size)
+        if fetch_size is None or fetch_size == 0:
+            fetch_size = DEFAULT_FETCH_SIZE
+        origin_entries, key_entries = await Entry().get_entries_by_author(self.current_user.id)
+        tag_key = self.get_argument("tag_key", "")
+        entries = key_entries[tag_key] if len(tag_key) != 0 else origin_entries
+        entry_cnt = len(entries)
+        ss['entries_cnt'] = entry_cnt
+        page_cnt = int(entry_cnt/fetch_size)
+        if (entry_cnt % fetch_size) > 0:
+            page_cnt += 1
+        i = 0
+        pages = []
+        url_suffix = ""
+        if len(tag_key) > 0:
+            pages.append({"url": "#", "page_title": tag_key})
+            url_suffix = "?tag_key="+tag_key
+        if page_cnt > 1:
+            while i < page_cnt:
+                ipage = i*fetch_size
+                url = "/blog/manage%d-%d" % (ipage, fetch_size)
+                pages.append({"url": url+url_suffix, "page_title": str(ipage)})
+                i = i+1
+        if len(tag_key) == 0:
+            url = "/blog/archive0-%d?tag_key=" % fetch_size
+            for key in key_entries.keys():
+                cnt = len(key_entries[key])
+                tt = "%s(%d)" % (key, cnt)
                 pages.append({"url": url + key, "page_title": tt})
         part_entries = entries[offset:offset+fetch_size]
-        self.render("archive.html", entries=part_entries, pages=pages, current_page=str(offset), get_authorname_by_id=get_authorname_by_id, quota=False, get_text=get_text)
+        self.render("manage_entries.html", entries=part_entries, pages=pages, current_page=str(offset),
+                    get_authorname_by_id=get_authorname_by_id, quota=False, get_text=get_text, usage=ss)
 
 
 class SearchHandler(BaseHandler):
@@ -173,22 +228,28 @@ class SearchHandler(BaseHandler):
         fetch_size = int(fetch_size)
         if fetch_size is None or fetch_size == 0:
             fetch_size = DEFAULT_FETCH_SIZE
-        entries = await Entry().search(search_text)
+        author_id = None
+        if self.current_user is not None:
+            author_id = self.current_user.id
+        entries = await Entry().search(search_text, author_id)
         entry_cnt = len(entries)
         page_cnt = int(entry_cnt/fetch_size)
         if (entry_cnt % fetch_size) > 0:
             page_cnt += 1
         i = 0
-        pages = []
+        pages = list()
+        navigation = list()
+        navigation.append({'url': '', 'page_title': '[%s]搜索结果(%d)' % (search_text, len(entries))})
         if page_cnt > 1:
             while i < page_cnt:
                 ipage = i*fetch_size
-                url = "/blog/search%d-%d/" % (ipage,fetch_size)
+                url = "/blog/search%d-%d/" % (ipage, fetch_size)
                 url = url + search_text
                 pages.append({"url": url, "page_title": str(ipage)})
                 i = i+1
         part_entries = entries[offset:offset+fetch_size]
-        self.render("archive.html", entries=part_entries, pages=pages, current_page=offset, get_authorname_by_id=get_authorname_by_id, quota=False, get_text=get_text)
+        self.render("archive.html", entries=part_entries, pages=pages, navigation=navigation, search_index=[], current_page=str(offset),
+                    get_authorname_by_id=get_authorname_by_id, quota=False, get_text=get_text, search_text=search_text)
 
 
 class FeedHandler(BaseHandler):
@@ -213,11 +274,14 @@ class ComposeHandler(BaseHandler):
             editor = entry.editor
         else:
             rr = await Entry().get_usage_by_author(self.current_user.id)
-            usage = rr.attach_usage + rr.txt_usage
+            if rr.txt_usage:
+                usage = rr.attach_usage + rr.txt_usage
+            else:
+                usage = 0
             if usage >= self.current_user.quota * one_MB:
-                message = '您的使用限额为%dMB，您当前已经使用%.2fMB，2秒后自动跳转到使用空间管理……' % \
+                message = '您的空间限额为%dMB，您当前已经使用%.2fMB，2秒后自动跳转到使用空间管理……' % \
                           (self.current_user.quota, usage/one_MB)
-                self.render("login_ok.html", message=message, goto_url="/auth/manage", delay=2000)
+                self.render("login_ok.html", message=message, goto_url="/?goto=/blog/manage0-10", delay=2000)
                 return
 
             entry = await Entry().get_empty_entry(author_id=self.current_user.id, cat_id=cat_id, editor=editor)
@@ -237,7 +301,6 @@ class ComposeHandler(BaseHandler):
             html = text
             text = ''
         search_tags = self.get_argument("search_tags")
-        # cat_id = int(self.get_argument("cat_id"))
         try:
             is_public = self.get_argument("is_public")
         except MissingArgumentError:
@@ -250,7 +313,6 @@ class ComposeHandler(BaseHandler):
             is_encrypt = False
         else:
             is_encrypt = True
-        # html = markdown.markdown(text)
         if await Entry().is_exists(entry_id=entry_id):
             entry = await Entry().update(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
             slug = entry.slug
@@ -284,21 +346,21 @@ class CatalogHandler(BaseHandler):
         args = json_decode(self.request.body)
         method = args.get('method')
         if method == 'add':
-            rr = await Catalog().add_catalog(args.get("cat_id"), args.get("cat_name"), self.current_user.id, args.get("parent_id"))
+            rr = await Catalog().add(args.get("cat_id"), args.get("cat_name"), self.current_user.id, args.get("parent_id"))
             if rr:
                 result = {"success": 1, "message": "节点%s[%s]添加成功!" % (args.get('cat_name'), args.get('cat_id'))}
             else:
                 result = {"success": 0, "message": "节点%s[%s]添加失败!" % (args.get('cat_name'), args.get('cat_id'))}
             self.write(json_encode(result))
         elif method == 'modify':
-            rr = await Catalog().modify_catalog(args.get("cat_id"), args.get("cat_name"), self.current_user.id)
+            rr = await Catalog().modify(args.get("cat_id"), args.get("cat_name"), self.current_user.id)
             if rr:
                 result = {"success": 1, "message": "节点%s[%s]修改成功!" % (args.get('cat_name'), args.get('cat_id'))}
             else:
                 result = {"success": 0, "message": "节点%s[%s]修改失败!" % (args.get('cat_name'), args.get('cat_id'))}
             self.write(json_encode(result))
         elif method == 'delete':
-            rr = await Catalog().delete_catalog(args.get("cat_id"), self.current_user.id)
+            rr = await Catalog().delete(args.get("cat_id"), self.current_user.id)
             if rr:
                 result = {"success": 1, "message": "节点[%s]删除成功!" % args.get('cat_id')}
             else:

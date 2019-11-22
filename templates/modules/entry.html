@@ -6,13 +6,13 @@
                onclick="window.location.href='/blog/compose{{ entry.cat_id }}?id={{ entry.id }}'">编辑</a>
         {% end %}
         <span>分享链接：</span><a href="/share/entry/{{ entry.slug }}" onclick="return false;">{{ entry.slug }}</a>
-        <span style="margin-left: 10px">文字{{ entry.size }}B, 图片及附件{{ '%dKB' % (entry.attach_size/1024) }}</span>
+        <span style="margin-left: 10px">文字{{ '%.2fKB' % (entry.size/1024) }}, 图片及附件{{ '%.2fKB' % (entry.attach_size/1024) }}</span>
     </h4>
     <div class="date" style="font-style: italic;margin-bottom: 15px;">
         &copy{{ get_authorname_by_id(entry.author_id) }},
         @{{ entry.published.strftime('%Y-%m-%d %H:%M:%S') }}
         {{ ", **加密**" if entry.is_encrypt else "" }}
-        {{ ""  if entry.is_public else ", 仅自己可见" }}
+        {{ "公开"  if entry.is_public else ", 私有" }}
         , 关键词:[{{ entry.search_tags if entry.search_tags is not None else "" }}]
     </div>
     <div>{% raw entry.html %}</div>

@@ -87,7 +87,7 @@ class AuthCreateHandler(BaseHandler):
         info = dict()
         info['email'] = author.email
         info['name'] = author.name
-        await AuthorOperation().add(self.current_user.id, 'sign-in', self.request.headers.get("X-Real-IP", ''), str(info))
+        await AuthorOperation().add(author.id, 'sign-in', self.request.headers.get("X-Real-IP", ''), str(info))
         self.render("login_ok.html", message=message, goto_url="/", delay=5000)
 
 
@@ -111,7 +111,7 @@ class AuthActivateHandler(BaseHandler):
         if await check_password(author.activate_key, key):
             await Author().activate_author(author_id)
             self.set_secure_cookie("tigerwingblog", author_id, expires_days=None)
-            await AuthorOperation().add(self.current_user.id, 'activate', self.request.headers.get("X-Real-IP", ''))
+            await AuthorOperation().add(author_id, 'activate', self.request.headers.get("X-Real-IP", ''))
             self.render("login_ok.html", message="email(%s)验证成功, 1秒后跳转到主页……" % email, goto_url="/", delay=1000)
         else:
             self.clear_cookie("tigerwingblog")
@@ -144,13 +144,15 @@ class AuthLogoutHandler(BaseHandler):
 
 
 class AuthSettingsHandler(BaseHandler):
+    @tornado.web.authenticated
     async def get(self):
         ss = eval(self.current_user.settings)
         rr = await Entry().get_usage_by_author(self.current_user.id)
-        ss['attach_usage'] = '%dKB' % (rr.attach_usage/1024)
-        ss['usage'] = '%dKB' % ((rr.attach_usage+rr.txt_usage)/1024)
+        ss['attach_usage'] = '%.2fKB' % (rr.attach_usage/1024)
+        ss['usage'] = '%.2fKB' % ((rr.attach_usage+rr.txt_usage)/1024)
         self.render("settings.html", author_settings=ss, error=None)
 
+    @tornado.web.authenticated
     async def post(self):
         default_editor = self.get_argument("default-editor")
         new_name = self.get_argument("new-name", "")
@@ -167,9 +169,11 @@ class AuthSettingsHandler(BaseHandler):
 
 
 class AuthResetHandler(BaseHandler):
+    @tornado.web.authenticated
     async def get(self):
         self.render("reset_password.html", error=None)
 
+    @tornado.web.authenticated
     async def post(self):
         if await check_password(self.get_argument("old_password"), self.current_user.hashed_password) is not True:
             self.render("reset_password.html", error="旧密码输入错误！")

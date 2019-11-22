@@ -19,7 +19,7 @@
         <option value="editor.md" title="轻量级标记语言，用纯文本进行文档编写">Markdown编辑器</option>
     </select><br><br>
     <span style="margin-left: 40px">空间限额{{ current_user.quota }}MB，当前空间使用{{ author_settings["usage"] }}，其中图片及附件占用空间{{ author_settings["attach_usage"] }}。
-        <a href="javascript:" onclick="window.location.href='/blog/myblogs0-10/';return false;">空间使用情况</a> </span>
+        <a href="javascript:" onclick="window.location.href='/blog/manage0-10';return false;">空间使用情况</a> </span>
     {% module xsrf_form_html() %}
     <br><br><br>
     <input type="submit" style="margin-left: 40px;" value="保存设置"/>

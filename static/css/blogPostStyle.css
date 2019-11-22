@@ -277,10 +277,42 @@ ul.archive .sec_title {
 	color: #6C8CD5;
 }
 
-#entry_brief {
+ul.archive .highlight{
+	color: #f93372;
+}
+ul.archive .entry_brief {
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
+}
+
+.tw-entry-attachment-header{
+	width: 99%;
+	float: top;
+	margin-bottom: 20px;
+}
+.tw-entry-attachment-header .tw-right{
+	float: right;
+}
+.tw-entry-attachment-header .tw-left{
+	float: left;
+}
+.tw-entry-attachment-body{
+	width: 99%;
+	float: left;
+	margin-top: 20px;
+}
+.tw-entry-attachment-body .tw-item{ width: 150px; float: left; margin-bottom: 2px; }
+.tw-entry-attachment-body .tw-photo{ width: 100%; float: left; }
+.tw-entry-attachment-body .tw-thumbnail{ width: 140px; height: 140px; }
+.tw-entry-attachment-body .tw-name { font-size: 11px; float: left; width: 100%; }
+.tw-entry-attachment-body .tw-link{ float: left; width: 100%; }
+.tw-entry-attachment-body .tw-info{ float: left; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tw-entry-attachment-body .tw-size{ float: left; width: 100%;overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tw-entry-attachment-body .tw-datetime{ float: left; width: 100%;overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.tw-entry-attachment-body .tw-on {
+	background-color: #E9EFF6;
 }
 
 /* Mobile view */

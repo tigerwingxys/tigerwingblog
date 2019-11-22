@@ -4,28 +4,68 @@
 {% end %}
 
 {% block body %}
+<div id="contentArchive">
   <ul class="archive">
-      <li>{{ '分页：' if len(pages)>0 else '' }}
+      <li>
+          导航
+          {% for nav in navigation %}
+            -><a href="javascript:" onclick="window.location.href='{{ nav["url"] }}'" >{{ nav["page_title"] }}</a>
+          {% end %}
+          {% if len(pages)>0 %}
+          分页：
+          {% end %}
           {% for page in pages %}
             <a href="javascript:" onclick="window.location.href='{{ page["url"] }}'" style="{{ 'font-weight: bold' if page["page_title"]==current_page else '' }};">{{ page["page_title"] }}</a>
           {% end %}
+          {% if len(search_index)>0 %}
+          关键词索引：
+          {% end %}
+              {% for nav in search_index %}
+              <a href="javascript:" onclick="window.location.href='{{ nav["url"] }}'" >{{ nav["page_title"] }}</a>
+              {% end %}
       </li>
     {% for entry in entries %}
       <li>
-          <div class="title"><a href="javascript:" onclick="window.location.href='/blog/entry/{{ entry.slug }}'">{{ entry.title }}</a>
-              <i class="sec_title">, &copy{{ get_authorname_by_id(entry.author_id) }},
-                  @{{ entry.published.strftime('%Y-%m-%d %H:%M:%S') }}
+          <div class="title">
+              <a href="javascript:" class="search" onclick="window.location.href='/blog/entry/{{ entry.slug }}'">{{ entry.title }}</a>
+              <i class="sec_title"> , &copy{{ get_authorname_by_id(entry.author_id) }},
+              @{{ entry.published.strftime('%Y-%m-%d %H:%M:%S') }}
                   {{ ", **加密**" if entry.is_encrypt else "" }}
-                  {{ ""  if entry.is_public else ", 仅自己可见"}}
-                  , 关键词:[{{ entry.search_tags if entry.search_tags is not None else "" }}]</i>
+                  {{ ", 公开"  if entry.is_public else ", 私有"}}
+              </i>
+              <i class="sec_title search">
+                  , 关键词:[{{ entry.search_tags if entry.search_tags is not None else "" }}]
+              </i>
               <span style="font-size: 14px;color: #4b15b1;">
                   {% if quota %}
-                  , 文字{{ entry.size }}B, 图片及附件{{ '%dKB' % (entry.attach_size/1024) }}
+                  , 文字{{ '%.2fKB' % (entry.size/1024) }}, 图片及附件{{ '%.2fKB' % (entry.attach_size/1024) }}
                   {% end %}
-              </span></div>
-          <div id="entry_brief">{{ get_text(entry.html) }}</div>
+              </span>
+          </div>
+          <div class="entry_brief search">{{ get_text(entry.html) }}</div>
       </li>
     {% end %}
       <li>{{ "没有记录。" if len(entries)==0 else "" }}</li>
   </ul>
+</div>
+{% end %}
+{% block bottom %}
+{% if search_text %}
+<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        $("#contentArchive").find(".search").each(function () {
+            highlightText($(this), '{{ search_text }}');
+        });
+    });
+
+    function highlightText(obj, text) {
+        var regExp = new RegExp(text, "gi");
+        var html = obj.html();
+        var newHtml = html.replace(regExp, "<span class='highlight' >"+text+"</span>");
+        obj.html(newHtml);
+    }
+
+</script>
+{% end %}
 {% end %}
