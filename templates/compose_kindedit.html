@@ -13,7 +13,7 @@
 
     <div>
       <input type="submit" value="{{ _("保存") }}" class="submit"/>
-      &nbsp;<a href="{{ "/blog/entry/" + entry.slug if entry.slug != "" else "/blog/archive0-10" }}">{{ _("取消") }}</a>
+        &nbsp;<a href="javascript:" onclick="window.location.href='{{ "/blog/entry/"+entry.slug if len(entry.slug)>0 else "/blog/archive0-10" }}'">{{ _("取消") }}</a>
     </div>
     <input type="hidden" name="id" value="{{ entry.id }}"/>
     {% module xsrf_form_html() %}

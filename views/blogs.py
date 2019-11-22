@@ -320,7 +320,9 @@ class ComposeHandler(BaseHandler):
         else:
             slug = await Entry().add_entry(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
             await AuthorOperation().add(self.current_user.id, 'add_entry', self.request.headers.get("X-Real-IP", '') or self.request.remote_ip, str({"entry_id": entry_id}))
-        self.redirect("/blog/refresh/" + slug)
+        goto_url = '/blog/entry/' + slug
+        # self.redirect("/blog/refresh/" + slug)
+        self.render("login_ok.html", goto_url=goto_url, message='ok', delay=1)
 
 
 class DeleteHandler(BaseHandler):
