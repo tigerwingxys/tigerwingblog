@@ -1,11 +1,6 @@
 import tornado
 import os.path
-import tornado.escape
-import tornado.httpserver
-import tornado.ioloop
-import tornado.locks
 import tornado.options
-import tornado.web
 from infrastructure.utils.db_conn import DbConnect
 from tornado.options import define, options
 from infrastructure.utils.common import get_size
