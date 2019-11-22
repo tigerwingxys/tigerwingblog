@@ -40,7 +40,7 @@ CREATE TABLE entries (
     updated TIMESTAMP NOT NULL,
     is_public boolean not null default true
 );
-create index entries_author_id_idx on entries(author_id);
+create index entries_author_id_idx on entries(author_id, cat_id);
 create index entries_slug_idx on entries(slug);
 alter table entries add column is_encrypt boolean not null default false;
 alter table entries add column search_tags varchar (256);
@@ -131,3 +131,6 @@ alter table entries add column attach_cnt int not null default 0;
 
 alter table catalogs drop constraint catalogs_pkey cascade ;
 alter table catalogs add constraint catalogs_pkey primary key (author_id,cat_id);
+
+drop index entries_author_id_idx;
+create index entries_author_id_idx on entries(author_id, cat_id);
