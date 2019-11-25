@@ -383,3 +383,9 @@ class CatalogHandler(BaseHandler):
 class EntryModule(tornado.web.UIModule):
     def render(self, entry):
         return self.render_string("modules/entry.html", entry=entry, get_authorname_by_id=get_authorname_by_id)
+
+
+class JsonTestHandler(BaseHandler):
+    async def get(self):
+        result = {'success': 1, 'message': 'interface test ok.'}
+        self.write(json_encode(result))

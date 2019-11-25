@@ -113,6 +113,7 @@ class Application(tornado.web.Application):
             (r"/auth/reset_password", auth.AuthResetHandler),
             (r"/auth/forget_password", auth.AuthForgetHandler),
             (r"/maintain/backup(.*)-(\d+)-(\d+)", maintain.BackupHandler, dict(base_path=settings['base_path'], upload_path=settings['upload_path'])),
+            (r"/json/test", blogs.JsonTestHandler),
         ]
 
         super(Application, self).__init__(handlers, **settings)
