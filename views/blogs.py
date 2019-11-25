@@ -316,8 +316,8 @@ class ComposeHandler(BaseHandler):
             is_encrypt = False
         else:
             is_encrypt = True
-        old_entry = await Entry().get(entry_id=entry_id)
-        if old_entry is not None:
+        if await Entry().is_exists(entry_id=entry_id):
+            old_entry = await Entry().get(entry_id=entry_id)
             await Entry().update(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
             slug = old_entry.slug
             data = gzip.compress(bson.dumps(old_entry))
