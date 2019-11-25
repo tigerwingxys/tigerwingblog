@@ -7,4 +7,6 @@ cachetools
 psycopg2b
 beautifulsoup4
 pillow
+bson
+pycryptodome
 tornado

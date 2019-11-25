@@ -105,7 +105,7 @@ alter table cache_flag drop constraint cache_flag_pkey;
 alter table cache_flag add constraint cache_flag_pkey primary key (author_id,cache_name);
 insert into cache_flag(cache_name,time_flag,int_flag,author_id)  select 'catalog',current_timestamp,0,id from authors where id!=0;
 
-# 2019-11-13 not flush to vultr
+# 2019-11-13
 alter table authors add column settings text not null default '{"default-editor": "kind-editor"}';
 alter table entries add column editor varchar (32) not null default 'kind-editor';
 
@@ -134,3 +134,9 @@ alter table catalogs add constraint catalogs_pkey primary key (author_id,cat_id)
 
 drop index entries_author_id_idx;
 create index entries_author_id_idx on entries(author_id, cat_id);
+
+
+#2019-11-23  not flush to vultr
+alter table author_operation add column data bytea;
+alter table authors add column ident char(32);
+update authors set ident = substr(hashed_password,10,32) where id != 0;

@@ -28,14 +28,14 @@ class Author(BaseTable):
         self.cached = True
 
     @cached(cache=TTLCache(maxsize=1024, ttl=3600))
-    def get_author(self, author_id):
+    def get(self, author_id):
         return DbConnect.query_one("SELECT * FROM authors WHERE id = %s", author_id)
 
     @cached(cache=TTLCache(maxsize=1024, ttl=3600))
-    async def get_author_by_email(self, email):
+    async def get_by_email(self, email):
         return DbConnect.query_one("select * from authors where email = %s", email, )
 
-    async def add_author(self, email, name, upassword, key):
+    async def add(self, email, name, upassword, key):
         author = DbConnect.execute_returning( "INSERT INTO authors (email, name, hashed_password, activate_key) "
             "VALUES (%s, %s, %s, %s) RETURNING *", email, name, upassword, key)
         EntriesStatistic().add_system_cats(author.id)
@@ -46,7 +46,7 @@ class Author(BaseTable):
     async def activate_author(self, author_id):
         return DbConnect.execute("update authors set activate_state='true' where id = %s", author_id)
 
-    async def del_author(self, author_id):
+    async def delete(self, author_id):
         EntriesStatistic().delete_by_author(author_id)
         DbConnect.execute("delete from authors where id=%s and id!=0 ", author_id)
         CacheFlag().delete("catalog", author_id=author_id)

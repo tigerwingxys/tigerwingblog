@@ -24,6 +24,6 @@ class AuthorOperation(BaseTable):
     def __init__(self):
         self.cached = False
 
-    async def add(self, author_id, operate, remote_ip, info='{}'):
-        DbConnect.execute("INSERT INTO author_operation(author_id, operate, remote_ip, info) "
-            "VALUES (%s, %s, %s, %s) ", author_id, operate, remote_ip, info)
+    async def add(self, author_id, operate, remote_ip, info='{}', data=None):
+        DbConnect.execute("INSERT INTO author_operation(author_id, operate, remote_ip, info, data) "
+            "VALUES (%s, %s, %s, %s, %s) ", author_id, operate, remote_ip, info, data)

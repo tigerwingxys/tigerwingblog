@@ -27,7 +27,7 @@ class BaseHandler(tornado.web.RequestHandler):
         # self.current_user in prepare instead.
         user_id = self.get_secure_cookie("tigerwingblog")
         if user_id:
-            self.current_user = Author().get_author(int(user_id))
+            self.current_user = Author().get(int(user_id))
             self.current_user['app_settings'] = self.settings
         self.param = ObjectDict()
 

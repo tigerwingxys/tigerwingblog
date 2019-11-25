@@ -37,7 +37,7 @@ class AuthCreateHandler(BaseHandler):
 
     async def post(self):
         try:
-            author1 = await Author().get_author_by_email(self.get_argument("email"))
+            author1 = await Author().get_by_email(self.get_argument("email"))
         except NoResultError:
             pass
         else:
@@ -63,7 +63,7 @@ class AuthCreateHandler(BaseHandler):
         )
         hash_key = tornado.escape.to_unicode(hash_key)
 
-        author = await Author().add_author(self.get_argument("email"), self.get_argument("name"), hashed_password, key)
+        author = await Author().add(self.get_argument("email"), self.get_argument("name"), hashed_password, key)
 
         act_link = '%s/auth/activate?author_id=%s&activate_key=%s&email=%s&create_date=%s' % \
                    (self.settings["home_domain"], author.id, hash_key, author.email, author.create_date.strftime('%Y-%m-%d %H:%M:%S'))
@@ -76,7 +76,7 @@ class AuthCreateHandler(BaseHandler):
         try:
             yag.send(to=author.email, subject=subject, contents=mail_content.decode())
         except Exception :
-            await Author().del_author(author.id)
+            await Author().delete(author.id)
             message = "无法发送激活邮件，注册失败！"
             self.render("create_author.html", error=message)
             return
@@ -98,7 +98,7 @@ class AuthActivateHandler(BaseHandler):
         create_date = self.get_argument("create_date")
         email = self.get_argument("email")
         try:
-            author = Author().get_author(author_id)
+            author = Author().get(author_id)
         except NoResultError:
             self.clear_cookie("tigerwingblog")
             self.render("login_ok.html", message="帐户不存在！5秒后跳转到主页……", goto_url="/", delay=5000)
@@ -123,7 +123,7 @@ class AuthLoginHandler(BaseHandler):
 
     async def post(self):
         try:
-            author = await Author().get_author_by_email( self.get_argument("email"))
+            author = await Author().get_by_email( self.get_argument("email"))
         except NoResultError:
             self.render("login.html", error="帐户不存在！")
             return
@@ -199,7 +199,7 @@ class AuthForgetHandler(BaseHandler):
 
     async def post(self):
         try:
-            author = await Author().get_author_by_email( self.get_argument("email"))
+            author = await Author().get_by_email( self.get_argument("email"))
         except NoResultError:
             self.render("forget_password.html", error="帐户不存在！")
             return
@@ -233,6 +233,3 @@ class AuthForgetHandler(BaseHandler):
         await AuthorOperation().add(self.current_user.id, 'forget_pwd', self.request.headers.get("X-Real-IP", ''))
         self.render("login_ok.html", message="密码重置成功，新密码已经发送到您的邮箱，请重新登录", goto_url="/", delay=2000)
 
-class EntryModule(tornado.web.UIModule):
-    def render(self, entry):
-        return self.render_string("modules/entry.html", entry=entry, get_authorname_by_id=get_authorname_by_id)

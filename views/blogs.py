@@ -29,14 +29,16 @@ from data.entry import Entry
 from data.catalog import Catalog
 from data.author_operation import AuthorOperation
 from views.basehandler import BaseHandler
-from infrastructure.utils.common import get_text
+from infrastructure.utils.common import get_text,aesencrypt
+import gzip
+import bson
 
 DEFAULT_FETCH_SIZE = 10
 DEFAULT_CONTENT_URL = "/blog/archive0-%d" % DEFAULT_FETCH_SIZE
 
 
 def get_authorname_by_id(author_id):
-    author = Author().get_author(author_id)
+    author = Author().get(author_id)
     name = author_id
     if author is not None:
         name = author.name
@@ -314,10 +316,12 @@ class ComposeHandler(BaseHandler):
             is_encrypt = False
         else:
             is_encrypt = True
-        if await Entry().is_exists(entry_id=entry_id):
-            entry = await Entry().update(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
-            slug = entry.slug
-            await AuthorOperation().add(self.current_user.id, 'update_entry', self.request.headers.get("X-Real-IP", '') or self.request.remote_ip, str({"entry_id": entry_id}))
+        old_entry = await Entry().get(entry_id=entry_id)
+        if old_entry is not None:
+            await Entry().update(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
+            slug = old_entry.slug
+            data = gzip.compress(bson.dumps(old_entry))
+            await AuthorOperation().add(self.current_user.id, 'update_entry', self.request.headers.get("X-Real-IP", '') or self.request.remote_ip, info=str({"entry_id": entry_id}), data=data)
         else:
             slug = await Entry().add_entry(self.current_user, entry_id, title, text, html, is_public, is_encrypt, search_tags, cat_id)
             await AuthorOperation().add(self.current_user.id, 'add_entry', self.request.headers.get("X-Real-IP", '') or self.request.remote_ip, str({"entry_id": entry_id}))

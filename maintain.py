@@ -5,6 +5,10 @@ from infrastructure.utils.db_conn import DbConnect
 from tornado.options import define, options
 from infrastructure.utils.common import get_size
 from data.entry import one_entry_init_size
+import gzip
+import json
+import datetime
+import bson
 
 
 define("db_host", default="127.0.0.1", help="blog database host")
@@ -14,20 +18,25 @@ define("db_user", default="blog", help="blog database user")
 define("db_password", default="blog", help="blog database password")
 define("upload_path", default="/home/blog/tigerwingblog/static/uploads", help="uploaded files store path")
 
-def correct_author(author_id):
+
+def clear_garbage(author_id):
     pass
+    # deleted files
+    # deleted entries
 
 
-def clear_delete_files(author_id):
-    pass
+# json设置如下encode可支持datetime
+# class JsonToDatetime(json.JSONEncoder):
+#     def default(self, obj):
+#         if isinstance(obj, datetime):
+#             return obj.strftime('%Y-%m-%d %H: %M: %S')
+#         elif isinstance(obj, date):
+#             return obj.strftime('%Y-%m-%d')
+#         else:
+#             return json.JSONEncoder.default(self, obj)
 
-def clear_empty_entries():
-    pass
 
-def correct_entries_statistic():
-    pass
-
-def correct_entries():
+def correct_data():
     print('Begin processing...')
     authors = DbConnect.query('select * from authors where activate_state=true and id!= 0')
     for author in authors:
@@ -64,8 +73,32 @@ def main():
     tornado.options.parse_command_line()
     DbConnect.init_db( db_host=options.db_host, db_port=options.db_port, db_user=options.db_user,
                        db_password=options.db_password, db_database=options.db_database, )
-    correct_entries()
 
+    from data.backup import dump_system,load_system
+
+    # author = DbConnect.query_one('select * from authors where id=%s', 3)
+    # buf = dump_author(author, options.upload_path)
+    # print('total size:%d' % len(buf))
+    # with open('author-3.dmp','wb') as f:
+    #     f.write(buf)
+    # with open('author-3.dmp', 'rb') as f:
+    #     buf = f.read()
+    # dct, author2, author2_attachs = load_author(author.ident, buf)
+    #
+    # sysauthor = DbConnect.query_one('select * from authors where id=0')
+    # buf = dump_system(0, sysauthor.ident, options.upload_path,
+    #                   datetime.datetime.strptime('20191120000000', '%Y%m%d%H%M%S'),
+    #                   datetime.datetime.strptime('20191125000000', '%Y%m%d%H%M%S'))
+    # print('total size:%d' % len(buf))
+    # with open('blogsystem.dmp','wb') as f:
+    #     f.write(buf)
+    # with open('blogsystem.dmp', 'rb') as f:
+    #     buf = f.read()
+    # dct, authors, authors_attachs = load_system(sysauthor.ident, buf)
+    #
+    # print(len(authors))
+
+    correct_data()
 
 if __name__ == "__main__":
     main()

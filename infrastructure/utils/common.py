@@ -19,6 +19,7 @@
 import os
 import re
 import time
+from Crypto.Cipher import AES
 
 def get_size( file_path ):
     if not os.path.exists(file_path):
@@ -46,3 +47,26 @@ def get_mtime(filename):
     t = os.path.getmtime(filename)
     tt = time.localtime(t)
     return time.strftime('%Y-%m-%d %H:%M:%S', tt)
+
+
+def aesencrypt(key, iv, data):
+    if isinstance(key, str):
+        key = bytes(key, 'utf-8')
+    if isinstance(iv, str):
+        iv = bytes(iv, 'utf-8')
+    aes = AES.new(key=key, mode=AES.MODE_CBC, iv=iv)
+
+    size = len(data)
+    ladd = 16 - (size % 16)
+    data = data + (chr(ladd).encode('utf-8') * ladd)
+    return aes.encrypt(data)
+
+
+def aesdecrypt(key, iv, data):
+    if isinstance(key, str):
+        key = bytes(key, 'utf-8')
+    if isinstance(iv, str):
+        iv = bytes(iv, 'utf-8')
+    aes = AES.new(key=key, mode=AES.MODE_CBC, iv=iv)
+    buf = aes.decrypt(data)
+    return buf[:-buf[-1]]

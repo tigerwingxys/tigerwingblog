@@ -27,7 +27,7 @@ import tornado.options
 import tornado.web
 from importlib import import_module
 from infrastructure.utils.db_conn import DbConnect
-from views import blogs, auth, images
+from views import blogs, auth, images, maintain
 
 from tornado.options import define, options
 
@@ -74,6 +74,7 @@ class Application(tornado.web.Application):
             mail_password=options.mail_password,
             mail_host=options.mail_host,
             mail_port=options.mail_port,
+            base_path=os.path.dirname(__file__),
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             upload_path=os.path.join(os.path.dirname(__file__), "static", "uploads"),
@@ -111,6 +112,7 @@ class Application(tornado.web.Application):
             (r"/auth/settings", auth.AuthSettingsHandler),
             (r"/auth/reset_password", auth.AuthResetHandler),
             (r"/auth/forget_password", auth.AuthForgetHandler),
+            (r"/maintain/backup(.*)-(\d+)-(\d+)", maintain.BackupHandler, dict(base_path=settings['base_path'], upload_path=settings['upload_path'])),
         ]
 
         super(Application, self).__init__(handlers, **settings)
