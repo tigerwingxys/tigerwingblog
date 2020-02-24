@@ -29,6 +29,5 @@ class BaseHandler(tornado.web.RequestHandler):
         if user_id:
             self.current_user = Author().get(int(user_id))
             self.current_user['app_settings'] = self.settings
-        self.param = ObjectDict()
 
 

@@ -129,6 +129,7 @@ class AuthLoginHandler(BaseHandler):
             return
         if author.activate_state is False:
             self.render("login.html", error="帐户未激活，请到注册邮箱中点击激活链接激活帐户！")
+            return
         if await check_password(self.get_argument("password"), author.hashed_password):
             await AuthorOperation().add(author.id, 'login', self.request.headers.get("X-Real-IP", ""))
             self.set_secure_cookie("tigerwingblog", str(author.id), expires_days=None)

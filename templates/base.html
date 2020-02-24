@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ escape(handler.settings["blog_title"]) }}</title>
     <link rel="stylesheet" href="{{ static_url("css/blogPostStyle.css") }}" type="text/css">
-    <link rel="stylesheet" href="https://cdn.bootcss.com/zTree.v3/3.5.40/css/zTreeStyle/zTreeStyle.css" type="text/css">
+    <link rel="stylesheet" href="{{ static_url("css/zTreeStyle/zTreeStyle.css") }}" type="text/css">
     <link rel="alternate" href="/feed" type="application/atom+xml" title="{{ escape(handler.settings["blog_title"]) }}">
     <link rel="icon" href="data:;base64,=">
     {% block head %}{% end %}
@@ -58,7 +58,7 @@
         <a href="https://gitee.com/tigerwing/tigerwingblog">码云Gitee</a>
     </div>Copyright 2019 Tigerwing(tigerwingxys@qq.com)</div>
 </div>
-    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+    <script src="{{ static_url("js/jquery.min.js") }}"></script>
     {% if current_user %}
     <script src="{{ static_url("js/jquery.ztree.core.min.js") }}"></script>
 	<SCRIPT type="text/javascript">

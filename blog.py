@@ -27,7 +27,7 @@ import tornado.options
 import tornado.web
 from importlib import import_module
 from infrastructure.utils.db_conn import DbConnect
-from views import blogs, auth, images, maintain
+from views import blogs, auth, images, maintain, mobile
 
 from tornado.options import define, options
 
@@ -79,13 +79,14 @@ class Application(tornado.web.Application):
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             upload_path=os.path.join(os.path.dirname(__file__), "static", "uploads"),
             ui_modules={"Entry": blogs.EntryModule},
-            xsrf_cookies=True,
+            xsrf_cookies=False,
             cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
             login_url="/auth/login",
             debug=True,
-            xsrf_cookie_kwargs={"expires_days": None},
         )
         handlers = [
+            (r"/mobile/authenticated", mobile.AuthenticatedHandler),
+            (r"/mobile/normal", mobile.NormalHandler),
             (r"/", blogs.HomeHandler),
             (r"/blog/myblogs(\d+)-(\d+)/(\d*)", blogs.MyBlogHandler),
             (r"/blog/myblogtree", blogs.MyBlogTreeHandler),

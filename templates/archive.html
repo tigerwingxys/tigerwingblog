@@ -51,7 +51,7 @@
 {% end %}
 {% block bottom %}
 {% if search_text %}
-<script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+    <script src="{{ static_url("js/jquery.min.js") }}"></script>
 <script type="text/javascript">
     $(document).ready(function () {
         $("#contentArchive").find(".search").each(function () {

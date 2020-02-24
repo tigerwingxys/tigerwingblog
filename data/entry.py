@@ -131,7 +131,11 @@ class Entry(BaseTable):
             global max_fetch_size
             if fetch_size is not None and fetch_size > max_fetch_size:
                 fetch_size = max_fetch_size
-            cached_entries[author_id]["entries"] = DbConnect.query("SELECT * FROM entries where is_public = true and state=1 ORDER BY published DESC", position_offset, fetch_size)
+            cached_entries[author_id]["entries"] = \
+                DbConnect.query("SELECT entries.*,authors.name as author_name FROM entries "
+                                "inner join authors on authors.id=entries.author_id "
+                                "where entries.is_public = true and entries.state=1 order by entries.published desc ",
+                                position_offset, fetch_size)
             cached_entries[author_id]["key_entries"] = self.analyze_tags(cached_entries[author_id]["entries"])
             cached_entries[author_id]["cache_query_time"] = cache_time
 
@@ -155,9 +159,18 @@ class Entry(BaseTable):
             if fetch_size is not None and fetch_size > max_fetch_size:
                 fetch_size = max_fetch_size
             if cat_id == '0':
-                cached_entries[key]["entries"] = DbConnect.query("SELECT * FROM entries WHERE author_id = %s and state=1 ORDER BY published DESC", position_offset, fetch_size, author_id)
+                cached_entries[key]["entries"] = \
+                    DbConnect.query("SELECT entries.*,authors.name as author_name FROM entries "
+                                    "inner join authors on authors.id=entries.author_id "
+                                    "where entries.author_id=%s and entries.state=1 order by entries.published desc ",
+                                    position_offset, fetch_size, author_id)
             else:
-                cached_entries[key]["entries"] = DbConnect.query("SELECT * FROM entries WHERE author_id = %s and cat_id = %s and state=1 ORDER BY published DESC", position_offset, fetch_size, author_id, cat_id)
+                cached_entries[key]["entries"] = \
+                    DbConnect.query("SELECT entries.*,authors.name as author_name FROM entries "
+                                    "inner join authors on authors.id=entries.author_id "
+                                    "where entries.author_id=%s and entries.cat_id=%s "
+                                    "and entries.state=1 order by entries.published desc ",
+                                    position_offset, fetch_size, author_id, cat_id)
             cached_entries[key]["key_entries"] = self.analyze_tags(cached_entries[key]["entries"])
             cached_entries[key]["cache_query_time"] = cache_time
 
